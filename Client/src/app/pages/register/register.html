@@ -1,0 +1,124 @@
+<div class="min-h-screen w-full flex items-center justify-center p-4 bg-background-light dark:bg-background-dark">
+<div class="w-full max-w-6xl rounded-xl shadow-2xl overflow-hidden flex flex-col md:flex-row transition-colors duration-300 bg-white dark:bg-[#1a202c]">
+  
+  <div class="hidden md:flex w-1/2 relative bg-gray-900 items-center justify-center overflow-hidden">
+    <div class="absolute inset-0 bg-center bg-cover bg-no-repeat opacity-60" 
+         style="background-image: url('https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1000&q=80');">
+    </div>
+    <div class="absolute inset-0 bg-gradient-to-t from-primary/90 to-primary/40 mix-blend-multiply"></div>
+    
+    <div class="relative z-10 p-12 text-white max-w-md">
+      <div class="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-white/20 backdrop-blur-sm">
+        <span class="material-symbols-outlined text-3xl">token</span>
+      </div>
+      <h2 class="text-4xl font-bold mb-4 leading-tight">Start your journey with us.</h2>
+      <p class="text-lg text-white/90 font-light leading-relaxed">
+        Join thousands of developers building the future. Experience seamless integration and powerful tools designed for modern applications.
+      </p>
+      
+      <div class="mt-8 flex gap-4">
+        <div class="flex -space-x-3 overflow-hidden">
+          <img class="inline-block h-10 w-10 rounded-full ring-2 ring-white" src="https://ui-avatars.com/api/?name=User+1&background=random" alt="User 1"/>
+          <img class="inline-block h-10 w-10 rounded-full ring-2 ring-white" src="https://ui-avatars.com/api/?name=User+2&background=random" alt="User 2"/>
+          <img class="inline-block h-10 w-10 rounded-full ring-2 ring-white" src="https://ui-avatars.com/api/?name=User+3&background=random" alt="User 3"/>
+        </div>
+        <div class="flex flex-col justify-center">
+          <span class="text-sm font-semibold">10k+ Users</span>
+          <div class="flex text-yellow-400 text-xs">
+            <span class="material-symbols-outlined text-[14px] fill-current">star</span>
+            <span class="material-symbols-outlined text-[14px] fill-current">star</span>
+            <span class="material-symbols-outlined text-[14px] fill-current">star</span>
+            <span class="material-symbols-outlined text-[14px] fill-current">star</span>
+            <span class="material-symbols-outlined text-[14px] fill-current">star</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="w-full md:w-1/2 p-8 lg:p-12 xl:px-16 flex flex-col justify-center">
+    <div class="mb-8">
+      <h1 class="text-[#0d121b] dark:text-white text-3xl font-bold leading-tight tracking-tight mb-2">Create Account</h1>
+      <p class="text-slate-500 dark:text-slate-400">Enter your details to register.</p>
+    </div>
+
+    <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="space-y-5">
+      
+      <div>
+        <label class="block text-sm font-medium text-[#0d121b] dark:text-slate-200 mb-1.5" for="fullName">Full Name</label>
+        <div class="relative">
+          <input formControlName="fullName" class="form-input block w-full rounded-lg border-gray-300 dark:border-gray-600 bg-[#f8f9fc] dark:bg-[#252b3b] text-[#0d121b] dark:text-white placeholder-slate-400 focus:border-primary focus:ring-primary sm:text-sm h-11 px-4 transition-colors duration-200" id="fullName" placeholder="John Doe" type="text"/>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-[#0d121b] dark:text-slate-200 mb-1.5" for="email">Email Address</label>
+        <div class="relative">
+          <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+            <span class="material-symbols-outlined text-[20px]">mail</span>
+          </span>
+          <input formControlName="email" class="form-input block w-full rounded-lg border-gray-300 dark:border-gray-600 bg-[#f8f9fc] dark:bg-[#252b3b] text-[#0d121b] dark:text-white placeholder-slate-400 focus:border-primary focus:ring-primary sm:text-sm h-11 pl-10 pr-4 transition-colors duration-200" id="email" placeholder="john@example.com" type="email"/>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-[#0d121b] dark:text-slate-200 mb-1.5" for="phone">Phone Number</label>
+        <div class="relative">
+          <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+            <span class="material-symbols-outlined text-[20px]">call</span>
+          </span>
+          <input formControlName="phone" class="form-input block w-full rounded-lg border-gray-300 dark:border-gray-600 bg-[#f8f9fc] dark:bg-[#252b3b] text-[#0d121b] dark:text-white placeholder-slate-400 focus:border-primary focus:ring-primary sm:text-sm h-11 pl-10 pr-4 transition-colors duration-200" id="phone" placeholder="0912345678" type="tel"/>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <div>
+          <label class="block text-sm font-medium text-[#0d121b] dark:text-slate-200 mb-1.5" for="password">Password</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+              <span class="material-symbols-outlined text-[20px]">lock</span>
+            </span>
+            <input formControlName="password" class="form-input block w-full rounded-lg border-gray-300 dark:border-gray-600 bg-[#f8f9fc] dark:bg-[#252b3b] text-[#0d121b] dark:text-white placeholder-slate-400 focus:border-primary focus:ring-primary sm:text-sm h-11 pl-10 pr-4 transition-colors duration-200" id="password" placeholder="••••••••" type="password"/>
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-[#0d121b] dark:text-slate-200 mb-1.5" for="confirmPassword">Confirm Password</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+              <span class="material-symbols-outlined text-[20px]">lock_reset</span>
+            </span>
+            <input formControlName="confirmPassword" class="form-input block w-full rounded-lg border-gray-300 dark:border-gray-600 bg-[#f8f9fc] dark:bg-[#252b3b] text-[#0d121b] dark:text-white placeholder-slate-400 focus:border-primary focus:ring-primary sm:text-sm h-11 pl-10 pr-4 transition-colors duration-200" id="confirmPassword" placeholder="••••••••" type="password"/>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-start mt-2">
+        <div class="flex h-6 items-center">
+          <input formControlName="terms" class="h-5 w-5 rounded border-gray-300 text-primary focus:ring-primary bg-[#f8f9fc] dark:bg-[#252b3b] dark:border-gray-600 transition-colors" id="terms" type="checkbox"/>
+        </div>
+        <div class="ml-3 text-sm">
+          <label class="font-normal text-slate-600 dark:text-slate-400" for="terms">
+            I agree to the <a class="font-medium text-primary hover:text-blue-700 hover:underline" href="#">Terms & Conditions</a>
+          </label>
+        </div>
+      </div>
+
+      <div class="pt-2">
+        <button [disabled]="registerForm.invalid" class="group relative flex w-full justify-center rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200" type="submit">
+          <span class="absolute inset-y-0 left-0 flex items-center pl-3">
+            <span class="material-symbols-outlined text-[20px] group-hover:text-white/80">person_add</span>
+          </span>
+          Sign Up
+        </button>
+      </div>
+    </form>
+
+    <div class="mt-8 text-center">
+      <p class="text-sm text-slate-600 dark:text-slate-400">
+        Already have an account? 
+        <a class="font-semibold text-primary hover:text-blue-700 transition-colors cursor-pointer" routerLink="/login">Login</a>
+      </p>
+    </div>
+  </div>
+</div>
+</div>

@@ -1,0 +1,240 @@
+<header
+  class="sticky top-0 z-50 w-full bg-white/80 dark:bg-[#101622]/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
+  <div class="px-4 md:px-10 lg:px-40 flex items-center justify-between py-3">
+    <div class="flex items-center gap-4 text-[#0d121b] dark:text-white">
+      <div class="size-8 text-primary">
+        <svg class="w-full h-full" fill="none" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+          <path clip-rule="evenodd"
+            d="M24 18.4228L42 11.475V34.3663C42 34.7796 41.7457 35.1504 41.3601 35.2992L24 42V18.4228Z"
+            fill="currentColor" fill-rule="evenodd"></path>
+          <path clip-rule="evenodd"
+            d="M24 8.18819L33.4123 11.574L24 15.2071L14.5877 11.574L24 8.18819ZM9 15.8487L21 20.4805V37.6263L9 32.9945V15.8487ZM27 37.6263V20.4805L39 15.8487V32.9945L27 37.6263ZM25.354 2.29885C24.4788 1.98402 23.5212 1.98402 22.646 2.29885L4.98454 8.65208C3.7939 9.08038 3 10.2097 3 11.475V34.3663C3 36.0196 4.01719 37.5026 5.55962 38.098L22.9197 44.7987C23.6149 45.0671 24.3851 45.0671 25.0803 44.7987L42.4404 38.098C43.9828 37.5026 45 36.0196 45 34.3663V11.475C45 10.2097 44.2061 9.08038 43.0155 8.65208L25.354 2.29885Z"
+            fill="currentColor" fill-rule="evenodd"></path>
+        </svg>
+      </div>
+      <h2 class="text-xl font-bold tracking-tight">Job Portal</h2>
+    </div>
+    <div class="hidden md:flex items-center gap-9">
+      <a class="text-sm font-medium hover:text-primary transition-colors" href="#">Find Jobs</a>
+      <a class="text-sm font-medium hover:text-primary transition-colors" href="#">Companies</a>
+      <a class="text-sm font-medium hover:text-primary transition-colors" href="#">Salaries</a>
+    </div>
+    <div class="flex items-center gap-4">
+      <!-- Nếu chưa đăng nhập: hiển thị nút Sign In -->
+      <button *ngIf="!isLoggedIn"
+        class="hidden sm:flex cursor-pointer items-center justify-center rounded-xl h-10 px-6 bg-primary text-white text-sm font-bold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all">
+        Sign In
+      </button>
+
+      <!-- Nếu đã đăng nhập: hiển thị user menu -->
+      <div *ngIf="isLoggedIn" class="hidden sm:flex items-center gap-3">
+        <!-- Notification Icon -->
+        <button class="relative p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
+          <span class="material-symbols-outlined text-slate-600 dark:text-slate-400">notifications</span>
+          <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+        </button>
+
+        <!-- User Avatar/Menu -->
+        <div
+          class="flex items-center gap-2 p-1 pr-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer transition-colors">
+          <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+            <span class="material-symbols-outlined text-primary text-xl">person</span>
+          </div>
+          <span class="text-sm font-medium text-slate-700 dark:text-slate-300">{{ userFullName }}</span>
+          <span class="material-symbols-outlined text-slate-400 text-sm">expand_more</span>
+        </div>
+      </div>
+
+      <button class="md:hidden text-slate-800 dark:text-white">
+        <span class="material-symbols-outlined">menu</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main class="flex-grow">
+  <section class="relative w-full overflow-hidden bg-slate-50 dark:bg-slate-900">
+    <div class="absolute inset-0 z-0">
+      <div class="absolute inset-0 bg-gradient-to-r from-blue-900/90 to-blue-800/80 z-10"></div>
+      <img alt="Modern office workspace background" class="w-full h-full object-cover"
+        src="https://lh3.googleusercontent.com/aida-public/AB6AXuBxM4MUXqxX3lIoFG9i5WYWTQ3nmTaiE1KSV_L8ll1x69Ns7zKMdzWOX6vmKzubaWGW5wEhwngJokRzY0_dvMwlNZVgA8m5SQ8pgOlQPPn9WsqE7hDyuiyXoh6Of1L82HH_T8yqZ8bOWRupyyx4by5aqC0iRcKCE1LmjGWwaoafDmzVhiN5Ss-_d0DZZNTjKnPm66gBHG74RK1LXLJE35cODIKM0tOC5gwGWPft02qbTHJVecLXM7hESpBggh670T8qIklrtrrFaDbU" />
+    </div>
+    <div class="relative z-10 px-4 md:px-10 lg:px-40 py-20 md:py-32 flex flex-col items-center text-center">
+      <h1 class="text-white text-4xl md:text-5xl lg:text-6xl font-black leading-tight tracking-tight mb-4 max-w-4xl">
+        Find Your Dream Job Today
+      </h1>
+      <h2 class="text-blue-100 text-base md:text-lg font-normal mb-10 max-w-2xl">
+        Browse thousands of jobs from top companies and kickstart your career.
+      </h2>
+      <div
+        class="w-full max-w-4xl bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-2 md:p-3 flex flex-col md:flex-row gap-2">
+        <div
+          class="flex-1 flex items-center px-4 h-12 md:h-14 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-transparent focus-within:border-primary/50 focus-within:bg-white dark:focus-within:bg-slate-700 transition-all">
+          <span class="material-symbols-outlined text-slate-400 mr-3">search</span>
+          <input
+            class="flex-1 bg-transparent border-none focus:ring-0 text-slate-800 dark:text-white placeholder:text-slate-400 text-sm md:text-base p-0"
+            placeholder="Job title, keywords, or company" type="text" />
+        </div>
+        <div class="hidden md:block w-px h-10 self-center bg-slate-200 dark:bg-slate-700 mx-1"></div>
+        <div
+          class="flex-1 flex items-center px-4 h-12 md:h-14 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-transparent focus-within:border-primary/50 focus-within:bg-white dark:focus-within:bg-slate-700 transition-all">
+          <span class="material-symbols-outlined text-slate-400 mr-3">location_on</span>
+          <select
+            class="flex-1 bg-transparent border-none focus:ring-0 text-slate-800 dark:text-white text-sm md:text-base p-0 cursor-pointer">
+            <option disabled="" selected="" value="">Select Location</option>
+            <option>Remote</option>
+            <option>New York, NY</option>
+            <option>San Francisco, CA</option>
+            <option>London, UK</option>
+            <option>Berlin, DE</option>
+          </select>
+        </div>
+        <button
+          class="h-12 md:h-14 px-8 bg-primary hover:bg-blue-600 text-white font-bold rounded-xl transition-colors shadow-lg shadow-blue-500/30 flex items-center justify-center gap-2">
+          Search
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <section class="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#101622]">
+    <div class="px-4 md:px-10 lg:px-40 py-8">
+      <div class="flex flex-wrap justify-center md:justify-between gap-6 max-w-4xl mx-auto text-center md:text-left">
+        <div class="flex flex-col items-center md:items-start gap-1 min-w-[140px]">
+          <p class="text-4xl font-black text-slate-900 dark:text-white tracking-tight">1k+</p>
+          <p class="text-slate-500 dark:text-slate-400 font-medium">Live Jobs</p>
+        </div>
+        <div class="hidden md:block w-px h-12 bg-slate-200 dark:bg-slate-800 self-center"></div>
+        <div class="flex flex-col items-center md:items-start gap-1 min-w-[140px]">
+          <p class="text-4xl font-black text-slate-900 dark:text-white tracking-tight">500+</p>
+          <p class="text-slate-500 dark:text-slate-400 font-medium">Companies</p>
+        </div>
+        <div class="hidden md:block w-px h-12 bg-slate-200 dark:bg-slate-800 self-center"></div>
+        <div class="flex flex-col items-center md:items-start gap-1 min-w-[140px]">
+          <p class="text-4xl font-black text-slate-900 dark:text-white tracking-tight">10k+</p>
+          <p class="text-slate-500 dark:text-slate-400 font-medium">Candidates</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="px-4 md:px-10 lg:px-40 py-16 bg-background-light dark:bg-background-dark">
+    <div class="max-w-[1200px] mx-auto">
+      <div class="flex items-center justify-between mb-10">
+        <h2 class="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Latest Job Openings
+        </h2>
+        <a class="text-primary font-semibold hover:underline flex items-center gap-1" href="#">
+          View all <span class="material-symbols-outlined text-sm">arrow_forward</span>
+        </a>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Loading State -->
+        <div *ngIf="loading" class="col-span-full text-center py-12">
+          <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          <p class="mt-4 text-slate-600 dark:text-slate-400">Đang tải việc làm...</p>
+        </div>
+
+        <!-- Error State -->
+        <div *ngIf="error && !loading" class="col-span-full text-center py-12">
+          <p class="text-red-600 dark:text-red-400">{{ error }}</p>
+          <button (click)="loadLatestJobs()"
+            class="mt-4 px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+            Thử lại
+          </button>
+        </div>
+
+        <!-- Job Cards - Dynamic -->
+        <div *ngFor="let job of featuredJobs"
+          class="group bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col h-full">
+          <div class="flex items-start justify-between mb-4">
+            <div
+              class="size-12 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400">
+              <span class="material-symbols-outlined text-3xl">work</span>
+            </div>
+            <button class="text-slate-400 hover:text-primary transition-colors">
+              <span class="material-symbols-outlined">bookmark</span>
+            </button>
+          </div>
+
+
+          <div class="mb-4">
+            <a [routerLink]="['/candidate/job-detail', job.jobId]" class="block">
+              <h3
+                class="text-lg font-bold text-slate-900 dark:text-white mb-1 group-hover:text-primary transition-colors cursor-pointer">
+                {{ job.title }}
+              </h3>
+            </a>
+            <p class="text-slate-500 dark:text-slate-400 text-sm">{{ job.companyName }}</p>
+          </div>
+
+          <!-- Skills Tags -->
+          <div class="flex flex-wrap gap-2 mb-6">
+            <span *ngFor="let skill of job.skills.slice(0, 3)"
+              class="px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-medium">
+              {{ skill }}
+            </span>
+            <span *ngIf="job.skills.length > 3"
+              class="px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-medium">
+              +{{ job.skills.length - 3 }}
+            </span>
+          </div>
+
+          <!-- Location & Employment Type -->
+          <div class="flex flex-wrap gap-2 mb-4 text-xs text-slate-500 dark:text-slate-400">
+            <span *ngIf="job.location" class="flex items-center gap-1">
+              <span class="material-symbols-outlined text-sm">location_on</span>
+              {{ job.location }}
+            </span>
+            <span *ngIf="job.employmentType" class="flex items-center gap-1">
+              <span class="material-symbols-outlined text-sm">schedule</span>
+              {{ job.employmentType }}
+            </span>
+          </div>
+
+          <div class="mt-auto flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-700">
+            <p class="text-emerald-600 dark:text-emerald-400 font-bold text-sm">
+              {{ formatSalary(job.salaryMin, job.salaryMax) }}
+            </p>
+            <a [routerLink]="['/candidate/job-detail', job.jobId]"
+              class="text-primary hover:bg-primary/5 dark:hover:bg-primary/20 px-4 py-2 rounded-lg text-sm font-semibold transition-colors cursor-pointer inline-block">
+              Apply Now
+            </a>
+          </div>
+        </div>
+
+        <!-- Empty State -->
+        <div *ngIf="!loading && !error && featuredJobs.length === 0" class="col-span-full text-center py-12">
+          <p class="text-slate-600 dark:text-slate-400">Chưa có việc làm nào.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="bg-[#0d121b] text-white py-12">
+  <div class="px-4 md:px-10 lg:px-40">
+    <div class="flex flex-col md:flex-row justify-between items-center gap-6">
+      <div class="flex items-center gap-2">
+        <div class="size-6 text-primary">
+          <svg class="w-full h-full" fill="none" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+            <path clip-rule="evenodd"
+              d="M24 18.4228L42 11.475V34.3663C42 34.7796 41.7457 35.1504 41.3601 35.2992L24 42V18.4228Z"
+              fill="currentColor" fill-rule="evenodd"></path>
+            <path clip-rule="evenodd"
+              d="M24 8.18819L33.4123 11.574L24 15.2071L14.5877 11.574L24 8.18819ZM9 15.8487L21 20.4805V37.6263L9 32.9945V15.8487ZM27 37.6263V20.4805L39 15.8487V32.9945L27 37.6263ZM25.354 2.29885C24.4788 1.98402 23.5212 1.98402 22.646 2.29885L4.98454 8.65208C3.7939 9.08038 3 10.2097 3 11.475V34.3663C3 36.0196 4.01719 37.5026 5.55962 38.098L22.9197 44.7987C23.6149 45.0671 24.3851 45.0671 25.0803 44.7987L42.4404 38.098C43.9828 37.5026 45 36.0196 45 34.3663V11.475C45 10.2097 44.2061 9.08038 43.0155 8.65208L25.354 2.29885Z"
+              fill="currentColor" fill-rule="evenodd"></path>
+          </svg>
+        </div>
+        <span class="font-bold text-lg">Job Portal</span>
+      </div>
+      <div class="flex gap-8 text-sm text-gray-400">
+        <a class="hover:text-white transition-colors" href="#">Privacy Policy</a>
+        <a class="hover:text-white transition-colors" href="#">Terms of Service</a>
+        <a class="hover:text-white transition-colors" href="#">Contact Support</a>
+      </div>
+    </div>
+    <div class="mt-8 border-t border-gray-800 pt-8 text-center md:text-left text-sm text-gray-500">
+      <p>© 2024 Job Portal Inc. All rights reserved.</p>
+    </div>
+  </div>
+</footer>

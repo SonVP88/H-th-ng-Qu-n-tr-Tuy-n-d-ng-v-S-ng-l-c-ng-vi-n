@@ -1,0 +1,87 @@
+<div class="min-h-screen w-full flex items-center justify-center p-4 bg-background-light dark:bg-background-dark">
+
+  <div class="w-full max-w-5xl bg-card-light dark:bg-card-dark rounded-xl shadow-2xl overflow-hidden flex flex-col md:flex-row min-h-[600px]">
+
+    <div class="relative hidden md:flex w-full md:w-1/2 bg-slate-900 items-end justify-center">
+      <div class="absolute inset-0 bg-cover bg-center opacity-80"
+           style="background-image: url('https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1000&q=80');">
+      </div>
+      <div class="absolute inset-0 bg-gradient-to-t from-primary/90 to-primary/30 mix-blend-multiply"></div>
+      <div class="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/60"></div>
+
+      <div class="relative z-10 p-12 text-white w-full">
+        <div class="mb-6">
+          <span class="material-symbols-outlined text-5xl text-white/90">verified_user</span>
+        </div>
+        <h2 class="text-3xl font-bold mb-4">Secure Access</h2>
+        <p class="text-white/80 text-lg leading-relaxed">
+          Manage your workspace efficiently with our next-generation platform designed for professionals.
+        </p>
+      </div>
+    </div>
+
+    <div class="w-full md:w-1/2 p-8 md:p-12 lg:p-16 flex flex-col justify-center bg-card-light dark:bg-card-dark">
+      <div class="mb-10">
+        <h1 class="text-3xl font-bold text-slate-900 dark:text-white mb-2 tracking-tight">Welcome Back</h1>
+        <p class="text-slate-500 dark:text-slate-400">Please enter your details to sign in.</p>
+      </div>
+
+      <form [formGroup]="loginForm" class="flex flex-col gap-6" (ngSubmit)="onSubmit()">
+        <div>
+          <label class="block text-sm font-medium text-slate-900 dark:text-slate-200 mb-1.5" for="email">Email</label>
+          <input formControlName="email" 
+                 class="block w-full rounded-lg border-slate-300 dark:border-slate-600 bg-background-light dark:bg-background-dark text-slate-900 dark:text-white focus:border-primary focus:ring-primary sm:text-sm py-3 px-4 placeholder:text-slate-400 border" 
+                 id="email" placeholder="name@company.com" type="email" />
+          
+          <div *ngIf="loginForm.get('email')?.touched && loginForm.get('email')?.invalid" class="text-red-500 text-xs mt-1">
+            <span *ngIf="loginForm.get('email')?.hasError('required')">Email không được để trống</span>
+            <span *ngIf="loginForm.get('email')?.hasError('email')">Email không đúng định dạng</span>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-900 dark:text-slate-200 mb-1.5" for="password">Password</label>
+          <div class="relative rounded-lg shadow-sm">
+            <input formControlName="password" [type]="showPassword ? 'text' : 'password'"
+                   class="block w-full rounded-lg border-slate-300 dark:border-slate-600 bg-background-light dark:bg-background-dark text-slate-900 dark:text-white focus:border-primary focus:ring-primary sm:text-sm py-3 pl-4 pr-12 placeholder:text-slate-400 border" 
+                   id="password" placeholder="••••••••" />
+
+            <button type="button" (click)="togglePassword()"
+                    class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer focus:outline-none">
+              <span class="material-symbols-outlined text-xl">
+                {{ showPassword ? 'visibility' : 'visibility_off' }}
+              </span>
+            </button>
+          </div>
+          
+           <div *ngIf="loginForm.get('password')?.touched && loginForm.get('password')?.invalid" class="text-red-500 text-xs mt-1">
+             Mật khẩu không được để trống
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between">
+          <label class="flex items-center gap-2 cursor-pointer group">
+            <input class="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary dark:border-slate-600 dark:bg-background-dark dark:checked:bg-primary transition-colors cursor-pointer"
+                   type="checkbox" />
+            <span class="text-sm text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-200 transition-colors">Remember me</span>
+          </label>
+          <a class="text-sm font-medium text-primary hover:text-primary-hover hover:underline outline-none focus:ring-2 focus:ring-primary/20 rounded" href="#">
+            Forgot password?
+          </a>
+        </div>
+
+        <button class="w-full bg-primary hover:bg-primary-hover text-white font-semibold py-3 px-4 rounded-lg shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-gray-900 mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                type="submit" [disabled]="loginForm.invalid">
+          Sign In
+        </button>
+
+        <div class="text-center mt-4">
+          <p class="text-sm text-slate-600 dark:text-slate-400">
+            Don't have an account?
+            <a class="font-medium text-primary hover:text-primary-hover hover:underline ml-1" routerLink="/register">Sign up</a>
+          </p>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
