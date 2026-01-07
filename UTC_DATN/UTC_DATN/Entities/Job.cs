@@ -27,6 +27,12 @@ public partial class Job
 
     public string Description { get; set; }
 
+    public string Requirements { get; set; }
+
+    public string Benefits { get; set; }
+
+    public int? NumberOfPositions { get; set; }
+
     public string Status { get; set; }
 
     public Guid? CreatedBy { get; set; }

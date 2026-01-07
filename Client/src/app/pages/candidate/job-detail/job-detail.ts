@@ -1,7 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 
 // Interface khớp với Backend JobDetailDto
 export interface JobDetailDto {
@@ -25,7 +26,7 @@ export interface JobDetailDto {
 @Component({
   selector: 'app-job-detail',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterModule],
   templateUrl: './job-detail.html',
   styleUrl: './job-detail.scss',
 })
@@ -34,16 +35,35 @@ export class JobDetail implements OnInit {
   loading = true;
   error: string | null = null;
 
-  private apiUrl = 'https://localhost:7181/api'; // HTTPS backend
+  // Apply Form
+  applyForm!: FormGroup;
+  selectedFile: File | null = null;
+  selectedFileName: string = '';
+  isSubmitting = false;
+  submitSuccess = false;
+  submitError: string | null = null;
+  isDragging = false;
+  isModalOpen = false;
+
+  private apiUrl = '/api';
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private http: HttpClient,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private fb: FormBuilder
   ) { }
 
   ngOnInit(): void {
+    // Initialize apply form
+    this.applyForm = this.fb.group({
+      fullName: ['', [Validators.required, Validators.maxLength(200)]],
+      email: ['', [Validators.required, Validators.email, Validators.maxLength(320)]],
+      phone: ['', [Validators.required, Validators.maxLength(50)]],
+      introduction: ['', [Validators.maxLength(2000)]]
+    });
+
     // Lấy ID từ URL params
     const id = this.route.snapshot.paramMap.get('id');
 
@@ -80,6 +100,154 @@ export class JobDetail implements OnInit {
           }
           this.loading = false;
           this.cdr.detectChanges();
+        }
+      });
+  }
+
+  /**
+   * Handle file selection
+   */
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      const file = input.files[0];
+      this.validateAndSetFile(file);
+    }
+  }
+
+  /**
+   * Handle drag over
+   */
+  onDragOver(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragging = true;
+  }
+
+  /**
+   * Handle drag leave
+   */
+  onDragLeave(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragging = false;
+  }
+
+  /**
+   * Handle file drop
+   */
+  onFileDrop(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragging = false;
+
+    if (event.dataTransfer?.files && event.dataTransfer.files.length > 0) {
+      const file = event.dataTransfer.files[0];
+      this.validateAndSetFile(file);
+    }
+  }
+
+  /**
+   * Validate and set file
+   */
+  private validateAndSetFile(file: File): void {
+    const allowedExtensions = ['.pdf', '.doc', '.docx'];
+    const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
+
+    if (!allowedExtensions.includes(fileExtension)) {
+      this.submitError = 'Chỉ chấp nhận file PDF, DOC hoặc DOCX';
+      this.selectedFile = null;
+      this.selectedFileName = '';
+      return;
+    }
+
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      this.submitError = 'File không được vượt quá 5MB';
+      this.selectedFile = null;
+      this.selectedFileName = '';
+      return;
+    }
+
+    this.selectedFile = file;
+    this.selectedFileName = file.name;
+    this.submitError = null;
+  }
+
+  /**
+   * Remove selected file
+   */
+  removeFile(): void {
+    this.selectedFile = null;
+    this.selectedFileName = '';
+  }
+
+  /**
+   * Submit application
+   */
+  onSubmitApply(): void {
+    // Reset messages
+    this.submitSuccess = false;
+    this.submitError = null;
+
+    // Validate form
+    if (this.applyForm.invalid) {
+      Object.keys(this.applyForm.controls).forEach(key => {
+        this.applyForm.get(key)?.markAsTouched();
+      });
+      this.submitError = 'Vui lòng điền đầy đủ thông tin';
+      return;
+    }
+
+    // Validate file
+    if (!this.selectedFile) {
+      this.submitError = 'Vui lòng chọn file CV';
+      return;
+    }
+
+    // Validate job
+    if (!this.job) {
+      this.submitError = 'Không tìm thấy thông tin công việc';
+      return;
+    }
+
+    this.isSubmitting = true;
+
+    // Create FormData
+    const formData = new FormData();
+    formData.append('jobId', this.job.jobId);
+    formData.append('fullName', this.applyForm.get('fullName')?.value);
+    formData.append('email', this.applyForm.get('email')?.value);
+    formData.append('phone', this.applyForm.get('phone')?.value);
+    formData.append('introduction', this.applyForm.get('introduction')?.value || '');
+    formData.append('cvFile', this.selectedFile);
+
+    // Call API
+    this.http.post<any>(`${this.apiUrl}/applications/apply`, formData)
+      .subscribe({
+        next: (response) => {
+          console.log('Application submitted successfully:', response);
+          this.isSubmitting = false;
+          this.submitSuccess = true;
+          this.submitError = null;
+
+          // Reset form
+          this.applyForm.reset();
+          this.selectedFile = null;
+          this.selectedFileName = '';
+        },
+        error: (err) => {
+          console.error('Error submitting application:', err);
+          this.isSubmitting = false;
+          this.submitSuccess = false;
+
+          if (err.status === 409) {
+            this.submitError = 'Bạn đã nộp hồ sơ cho công việc này rồi';
+          } else if (err.status === 400) {
+            this.submitError = err.error?.message || 'Dữ liệu không hợp lệ';
+          } else {
+            this.submitError = 'Có lỗi xảy ra. Vui lòng thử lại sau.';
+          }
         }
       });
   }
@@ -143,5 +311,29 @@ export class JobDetail implements OnInit {
    */
   goBack(): void {
     this.router.navigate(['/candidate/home']);
+  }
+
+  /**
+   * Open apply modal
+   */
+  openApplyModal(): void {
+    this.isModalOpen = true;
+    // Reset messages when opening modal
+    this.submitSuccess = false;
+    this.submitError = null;
+  }
+
+  /**
+   * Close apply modal
+   */
+  closeModal(): void {
+    this.isModalOpen = false;
+    // Reset form when closing
+    if (!this.submitSuccess) {
+      this.applyForm.reset();
+      this.selectedFile = null;
+      this.selectedFileName = '';
+      this.submitError = null;
+    }
   }
 }

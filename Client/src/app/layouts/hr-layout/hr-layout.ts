@@ -5,7 +5,7 @@ import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 @Component({
   selector: 'app-hr-layout',
   standalone: true,
-  imports: [ CommonModule, RouterOutlet ],
+  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive],
   templateUrl: './hr-layout.html',
   styleUrl: './hr-layout.scss',
 })

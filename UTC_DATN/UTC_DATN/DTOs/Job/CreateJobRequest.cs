@@ -9,6 +9,12 @@ public class CreateJobRequest
 
     public string? Description { get; set; }
 
+    public string? Requirements { get; set; }
+
+    public string? Benefits { get; set; }
+
+    public int? NumberOfPositions { get; set; }
+
     public decimal? SalaryMin { get; set; }
 
     public decimal? SalaryMax { get; set; }

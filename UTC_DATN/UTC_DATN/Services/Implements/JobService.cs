@@ -30,6 +30,9 @@ public class JobService : IJobService
                 Code = jobCode,
                 Title = request.Title,
                 Description = request.Description,
+                Requirements = request.Requirements,
+                Benefits = request.Benefits,
+                NumberOfPositions = request.NumberOfPositions,
                 SalaryMin = request.SalaryMin,
                 SalaryMax = request.SalaryMax,
                 Location = request.Location,
@@ -189,10 +192,10 @@ public class JobService : IJobService
             
             // Thông tin chi tiết
             Description = job.Description,
-            Requirements = null, // Entity không có field này
-            Benefits = null, // Entity không có field này
+            Requirements = job.Requirements,
+            Benefits = job.Benefits,
             ContactEmail = job.CreatedByNavigation?.Email,
-            NumberOfPositions = null // Entity không có field này
+            NumberOfPositions = job.NumberOfPositions
         };
 
         Console.WriteLine($"[DEBUG] Returning DTO for job: {result.Title}");

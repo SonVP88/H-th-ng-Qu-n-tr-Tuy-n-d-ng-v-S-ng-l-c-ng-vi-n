@@ -1,0 +1,62 @@
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+
+export interface ApplicationDto {
+    applicationId: string;
+    candidateName: string;
+    email: string;
+    phone: string;
+    appliedAt: string;
+    cvUrl: string;
+    status: string;
+    matchScore?: number;
+    aiExplanation?: string;
+}
+
+export interface MyApplicationDto {
+    applicationId: string;
+    jobId: string;
+    jobTitle: string;
+    companyName: string;
+    jobLocation?: string;
+    appliedAt: string;
+    status: string;
+    cvUrl?: string;
+}
+
+export interface ApiResponse<T> {
+    success: boolean;
+    data: T;
+    message?: string;
+}
+
+@Injectable({
+    providedIn: 'root'
+})
+export class ApplicationService {
+    private apiUrl = '/api';
+
+    constructor(private http: HttpClient) { }
+
+    /**
+     * Lấy danh sách hồ sơ theo JobId (Dành cho HR)
+     */
+    getApplicationsByJobId(jobId: string): Observable<ApiResponse<ApplicationDto[]>> {
+        return this.http.get<ApiResponse<ApplicationDto[]>>(`${this.apiUrl}/jobs/${jobId}/applications`);
+    }
+
+    /**
+     * Cập nhật trạng thái hồ sơ ứng viên (Dành cho HR)
+     */
+    updateApplicationStatus(applicationId: string, status: string): Observable<ApiResponse<any>> {
+        return this.http.put<ApiResponse<any>>(`${this.apiUrl}/applications/${applicationId}/status?status=${status}`, {});
+    }
+
+    /**
+     * Lấy danh sách hồ sơ đã nộp của ứng viên đang đăng nhập
+     */
+    getMyApplications(): Observable<ApiResponse<MyApplicationDto[]>> {
+        return this.http.get<ApiResponse<MyApplicationDto[]>>(`${this.apiUrl}/applications/my-applications`);
+    }
+}

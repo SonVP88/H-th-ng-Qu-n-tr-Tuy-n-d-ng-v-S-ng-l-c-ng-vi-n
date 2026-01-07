@@ -2,13 +2,13 @@ import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Component } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Router,RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { jwtDecode } from 'jwt-decode';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink], 
+  imports: [CommonModule, ReactiveFormsModule, RouterLink],
   templateUrl: './login.html',
   styleUrl: './login.scss',
 })
@@ -35,34 +35,57 @@ export class Login {
     if (this.loginForm.valid) {
       const payload = this.loginForm.value;
 
-      this.http.post<any>('https://localhost:7181/api/auth/login', payload)
+      this.http.post<any>('/api/auth/login', payload)
         .subscribe({
           next: (res) => {
             // res.token là chuỗi JWT backend trả về
-            const token = res.token; 
-            
-            // 1. Lưu Token vào bộ nhớ trình duyệt
-            localStorage.setItem('authToken', token);
+            const token = res.token;
 
-            // 2. Giải mã Token để lấy Role
+            if (!token) {
+              console.error('❌ Backend không trả về token!');
+              alert('Đăng nhập thất bại! Server không trả về token.');
+              return;
+            }
+
+            // 1. Lưu Token vào localStorage
+            localStorage.setItem('authToken', token);
+            console.log('✅ Token đã được lưu vào localStorage');
+
+            // 2. Verify token đã lưu thành công
+            const savedToken = localStorage.getItem('authToken');
+            if (savedToken === token) {
+              console.log('✅ Xác nhận: Token đã lưu thành công trong localStorage');
+            } else {
+              console.error('❌ Cảnh báo: Token không được lưu đúng!');
+            }
+
+            // 3. Giải mã Token để lấy thông tin user
             try {
               const decodedToken: any = jwtDecode(token);
-              // Backend thường lưu Role trong claim tên là "role" hoặc schema dài dòng
-              // Ta lấy role ra (check log để xem backend đặt tên key là gì)
+              console.log('📦 Decoded Token:', decodedToken);
+
               const role = decodedToken['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || decodedToken['role'];
+              const email = decodedToken['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'] || decodedToken['email'];
+              const name = decodedToken['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] || decodedToken['name'];
 
-              console.log('User Role:', role); // Log ra để kiểm tra
+              console.log('🎭 ROLE:', role);
+              console.log('📧 EMAIL:', email);
+              console.log('👤 TÊN:', name);
 
-              // 3. Điều hướng dựa trên Role
-              if (role === 'HR' || role === 'ADMIN') {
-                this.router.navigate(['/hr/dashboard']); // Vào trang quản trị
+              // Hiển thị thông báo cho user
+
+              // 4. Điều hướng dựa trên Role
+              if (role === 'HR' || role === 'ADMIN' || role === 'INTERVIEWER') {
+                console.log('➡️ Chuyển hướng đến HR Dashboard...');
+                this.router.navigate(['/hr/dashboard']);
               } else {
-                this.router.navigate(['/candidate/home']); // Vào trang chủ tìm việc
+                console.log('➡️ Chuyển hướng đến Candidate Home...');
+                this.router.navigate(['/candidate/home']);
               }
 
             } catch (error) {
-              console.error('Lỗi giải mã token:', error);
-              // Nếu lỗi thì cứ cho về trang chủ
+              console.error('❌ Lỗi giải mã token:', error);
+              alert('Đăng nhập thành công nhưng không thể đọc thông tin user. Vui lòng thử lại.');
               this.router.navigate(['/']);
             }
           },

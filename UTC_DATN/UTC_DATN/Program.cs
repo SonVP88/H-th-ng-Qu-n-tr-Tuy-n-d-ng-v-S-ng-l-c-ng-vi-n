@@ -11,8 +11,14 @@ var connectionString = builder.Configuration.GetConnectionString("UTC_DATNContex
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IMasterDataService, MasterDataService>();
 builder.Services.AddScoped<IJobService, JobService>();
+builder.Services.AddScoped<IApplicationService, ApplicationService>();
+builder.Services.AddScoped<IAiMatchingService, AiMatchingService>();
+
+// Đăng ký HttpClient cho AiMatchingService
+builder.Services.AddHttpClient<IAiMatchingService, AiMatchingService>();
+
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-var key = Encoding.ASCII.GetBytes(jwtSettings["Key"]!);
+var key = Encoding.UTF8.GetBytes(jwtSettings["Key"]!);
 
 builder.Services.AddAuthentication(options =>
 {
@@ -53,6 +59,13 @@ builder.Services.AddDbContext<UTC_DATNContext>(options =>
 // Add services to the container.
 
 builder.Services.AddControllers();
+
+// Cấu hình file upload size limit
+builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 10485760; // 10MB
+});
+
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
@@ -67,12 +80,15 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("AllowAngular");
 
+// Serve static files từ wwwroot (cho file uploads)
+app.UseStaticFiles();
+
 app.UseAuthentication(); 
 app.UseAuthorization();
 
 // app.UseHttpsRedirection(); // Tắt trong development, chỉ dùng HTTP
 
-app.UseAuthorization();
+
 
 app.MapControllers();
 

@@ -9,12 +9,15 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
     // Nếu có token, thêm vào header Authorization
     if (token) {
+        console.log('🔑 AuthInterceptor: Attaching token', token.substring(0, 10) + '...');
         const clonedRequest = req.clone({
             setHeaders: {
                 Authorization: `Bearer ${token}`
             }
         });
         return next(clonedRequest);
+    } else {
+        console.warn('⚠️ AuthInterceptor: No token found in localStorage');
     }
 
     // Nếu không có token, gửi request bình thường

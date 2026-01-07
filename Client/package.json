@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
+    "start": "ng serve --proxy-config proxy.conf.json",
     "start:dev": "cross-env NODE_TLS_REJECT_UNAUTHORIZED=0 ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",

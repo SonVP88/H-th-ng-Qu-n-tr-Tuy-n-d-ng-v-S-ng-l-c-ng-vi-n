@@ -31,6 +31,11 @@ public partial class Candidate
 
     public bool IsDeleted { get; set; }
 
+    // Liên kết với User (nullable - cho phép apply không cần đăng nhập)
+    public Guid? UserId { get; set; }
+
+    public virtual User User { get; set; }
+
     public virtual ICollection<Application> Applications { get; set; } = new List<Application>();
 
     public virtual ICollection<CandidateDocument> CandidateDocuments { get; set; } = new List<CandidateDocument>();

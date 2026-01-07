@@ -43,7 +43,10 @@ export class PostJob implements OnInit {
       salaryMin: [null],
       salaryMax: [null],
       deadline: [null],
-      description: ['', [Validators.required, Validators.minLength(10)]]
+      description: ['', [Validators.required, Validators.minLength(10)]],
+      requirements: [''],
+      benefits: [''],
+      numberOfPositions: [null, [Validators.min(1)]]
     });
   }
 
@@ -123,6 +126,9 @@ export class PostJob implements OnInit {
     const jobData: CreateJobRequest = {
       title: formValue.title,
       description: formValue.description,
+      requirements: formValue.requirements,
+      benefits: formValue.benefits,
+      numberOfPositions: formValue.numberOfPositions ? Number(formValue.numberOfPositions) : undefined,
       salaryMin: formValue.salaryMin ? Number(formValue.salaryMin) : undefined,
       salaryMax: formValue.salaryMax ? Number(formValue.salaryMax) : undefined,
       location: formValue.location,

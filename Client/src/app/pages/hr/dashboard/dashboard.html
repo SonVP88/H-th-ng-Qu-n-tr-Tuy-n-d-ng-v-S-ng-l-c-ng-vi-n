@@ -1,119 +1,61 @@
-<aside class="fixed top-0 left-0 z-40 w-72 h-screen bg-white dark:bg-slate-950 border-r border-gray-200 dark:border-slate-800 flex flex-col transition-colors duration-300">
-  <div class="h-20 min-h-[5rem] flex items-center px-8 border-b border-gray-100 dark:border-slate-800/50">
-    <div class="flex items-center gap-3">
-      <div class="w-8 h-8 rounded bg-primary flex items-center justify-center text-white shrink-0 shadow-lg shadow-blue-500/30">
-        <span class="material-symbols-outlined text-[20px] font-bold">work</span>
-      </div>
-      <h1 class="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Admin Console</h1>
-    </div>
-  </div>
-  <nav class="flex-1 overflow-y-auto custom-scrollbar px-4 py-6">
-    <ul class="space-y-1">
-      <li>
-        <a class="flex items-center gap-3 px-4 py-3 rounded-lg bg-blue-50 text-blue-700 dark:bg-primary/20 dark:text-blue-400 group transition-all duration-200" routerLink="hr/dashboard">
-          <span class="material-symbols-outlined text-[22px] font-bold">dashboard</span>
-          <span class="text-sm font-bold leading-normal">Dashboard</span>
-        </a>
-      </li>
-      <li>
-        <a class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-500 hover:bg-gray-50 hover:text-gray-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white transition-all duration-200" routerLink="/hr/post-job">
-          <span class="material-symbols-outlined text-[22px]">work_outline</span>
-          <span class="text-sm font-medium leading-normal">Jobs</span>
-        </a>
-      </li>
-      <li>
-        <a class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-500 hover:bg-gray-50 hover:text-gray-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white transition-all duration-200" href="#">
-          <span class="material-symbols-outlined text-[22px]">group</span>
-          <span class="text-sm font-medium leading-normal">Candidates</span>
-        </a>
-      </li>
-      <li>
-        <a class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-500 hover:bg-gray-50 hover:text-gray-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white transition-all duration-200" href="#">
-          <span class="material-symbols-outlined text-[22px]">calendar_month</span>
-          <span class="text-sm font-medium leading-normal">Schedule</span>
-        </a>
-      </li>
-      <li>
-        <a class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-500 hover:bg-gray-50 hover:text-gray-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white transition-all duration-200" href="#">
-          <span class="material-symbols-outlined text-[22px]">bar_chart</span>
-          <span class="text-sm font-medium leading-normal">Reports</span>
-        </a>
-      </li>
-      <li class="pt-4 mt-4 border-t border-gray-100 dark:border-slate-800">
-        <a class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-500 hover:bg-gray-50 hover:text-gray-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white transition-all duration-200" href="#">
-          <span class="material-symbols-outlined text-[22px]">settings</span>
-          <span class="text-sm font-medium leading-normal">Settings</span>
-        </a>
-      </li>
-    </ul>
-  </nav>
-  <div class="p-4 border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-950">
-    <div class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-800 cursor-pointer transition-colors">
-      <div class="w-10 h-10 rounded-full bg-cover bg-center shrink-0 border border-gray-200 dark:border-slate-700" data-alt="User Avatar" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAvZjk-CRj1rhjv2NJx7gn17kSPpCF1hFwODgAJtYIeh1YbWrpAzZbUYw14Qi-KqldWh620VoFKMhiQQgj32TIk6m-sy6lbSkcGF7e0hOMxqeUMYkLHXjqXty2Z0MCpR0g8onwem4gjKymtRQ-iW7r8zEJdpOZ8GjVlI78tSaV0rzYr7bt5VHrTnlrkuEQwVUtpd53Fm4Kd0bteE2Zbr5dSOzhddQHoixRC4eah-DWq38h6DmscQ0Pot1T-YpDXjgTDr09BqmVryqul");'></div>
-      <div class="flex flex-col overflow-hidden">
-        <span class="text-sm font-bold text-slate-900 dark:text-white truncate">Alexandra Ray</span>
-        <span class="text-xs text-gray-500 dark:text-slate-400 truncate">HR Manager</span>
-      </div>
-    </div>
-  </div>
-</aside>
 
-<div class="ml-72 min-h-screen flex flex-col transition-colors duration-300">
-  <header class="sticky top-0 z-30 h-20 bg-white dark:bg-slate-950 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between px-10 transition-colors duration-300">
-    <div class="flex-1 max-w-lg">
-      <label class="relative block group">
-        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 group-focus-within:text-primary transition-colors">
-          <span class="material-symbols-outlined">search</span>
-        </span>
-        <input class="block w-full rounded-xl border-none bg-gray-100 dark:bg-slate-900 py-2.5 pl-10 pr-3 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:bg-white dark:focus:bg-slate-900 dark:text-white transition-all shadow-sm" name="search" placeholder="Search candidates, jobs, or keywords..." type="text" />
-      </label>
+    <!-- Latest Jobs Section -->
+    <div class="mt-8 bg-white dark:bg-slate-950 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm">
+      <div class="px-6 py-4 border-b border-gray-100 dark:border-slate-800 flex justify-between items-center bg-gray-50/50 dark:bg-slate-900/50">
+        <h3 class="text-lg font-bold text-slate-900 dark:text-white">Latest Jobs</h3>
+        <button routerLink="/hr/post-job" class="px-3 py-1.5 text-xs font-bold text-white bg-primary hover:bg-blue-700 rounded-lg transition-colors">Post New Job</button>
+      </div>
+      <div class="p-6 text-center text-gray-500">
+        <p *ngIf="isLoadingJobs" class="text-gray-500">Loading jobs...</p><p *ngIf="errorMessage" class="text-red-600 font-bold">{{ errorMessage }}</p>
+        <div *ngIf="!isLoadingJobs && latestJobs.length > 0" class="space-y-3">
+          <div *ngFor="let job of latestJobs" class="flex justify-between items-center p-4 bg-gray-50 dark:bg-slate-900 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors">
+            <div>
+              <p class="font-bold text-slate-900 dark:text-white">{{ job.title }}</p>
+              <p class="text-sm text-gray-500 dark:text-slate-400">{{ job.location || 'Remote' }}</p>
+            </div>
+            <a [routerLink]="['/hr/manage-applications', job.jobId]" class="px-4 py-2 bg-primary hover:bg-blue-700 text-white text-sm font-bold rounded-lg transition-colors">View Applications</a>
+          </div>
+        </div>
+        <p *ngIf="!isLoadingJobs && latestJobs.length === 0">No jobs yet</p>
+      </div>
     </div>
-    <div class="flex items-center gap-4 ml-6">
-      <button class="relative w-10 h-10 flex items-center justify-center rounded-xl text-gray-500 hover:text-slate-900 hover:bg-gray-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 transition-all">
-        <span class="material-symbols-outlined">notifications</span>
-        <span class="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-950"></span>
-      </button>
-      <button class="w-10 h-10 flex items-center justify-center rounded-xl text-gray-500 hover:text-slate-900 hover:bg-gray-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 transition-all">
-        <span class="material-symbols-outlined">help</span>
-      </button>
-      <div class="h-8 w-px bg-gray-200 dark:bg-slate-800 mx-2"></div>
-      <button class="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-blue-700 text-white text-sm font-bold rounded-xl transition-colors shadow-lg shadow-blue-500/30">
-        <span class="material-symbols-outlined text-[20px]">add</span>
-        <span>New Job</span>
-      </button>
-    </div>
-  </header>
-  <main class="flex-1 p-10 overflow-x-hidden">
     <div class="mb-10 flex flex-col gap-1 animate-fade-in-up">
-      <h2 class="text-3xl font-black leading-tight tracking-tight text-slate-900 dark:text-white">Dashboard Overview</h2>
-      <p class="text-base font-normal text-gray-500 dark:text-slate-400">Welcome back! Here's what's happening with your recruitment pipeline today.</p>
+      <h2 class="text-3xl font-black leading-tight tracking-tight text-slate-900 dark:text-white">Dashboard Overview
+      </h2>
+      <p class="text-base font-normal text-gray-500 dark:text-slate-400">Welcome back! Here's what's happening with your
+        recruitment pipeline today.</p>
     </div>
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
-      <div class="bg-white dark:bg-slate-950 p-6 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow">
+      <div
+        class="bg-white dark:bg-slate-950 p-6 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow">
         <div class="flex justify-between items-start mb-4">
           <div class="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-primary">
             <span class="material-symbols-outlined">group</span>
           </div>
-          <span class="text-green-600 bg-green-50 dark:bg-green-900/20 text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1">
+          <span
+            class="text-green-600 bg-green-50 dark:bg-green-900/20 text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1">
             <span class="material-symbols-outlined text-[14px]">trending_up</span> 12%
           </span>
         </div>
         <p class="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Total Candidates</p>
         <h3 class="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">1,240</h3>
       </div>
-      <div class="bg-white dark:bg-slate-950 p-6 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow">
+      <div
+        class="bg-white dark:bg-slate-950 p-6 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow">
         <div class="flex justify-between items-start mb-4">
           <div class="p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg text-purple-600">
             <span class="material-symbols-outlined">work</span>
           </div>
-          <span class="text-green-600 bg-green-50 dark:bg-green-900/20 text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1">
+          <span
+            class="text-green-600 bg-green-50 dark:bg-green-900/20 text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1">
             <span class="material-symbols-outlined text-[14px]">trending_up</span> 2%
           </span>
         </div>
         <p class="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Open Positions</p>
         <h3 class="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">15</h3>
       </div>
-      <div class="bg-white dark:bg-slate-950 p-6 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow">
+      <div
+        class="bg-white dark:bg-slate-950 p-6 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow">
         <div class="flex justify-between items-start mb-4">
           <div class="p-2 bg-orange-50 dark:bg-orange-900/20 rounded-lg text-orange-600">
             <span class="material-symbols-outlined">event_available</span>
@@ -123,12 +65,14 @@
         <p class="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Interviews Today</p>
         <h3 class="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">8</h3>
       </div>
-      <div class="bg-white dark:bg-slate-950 p-6 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow">
+      <div
+        class="bg-white dark:bg-slate-950 p-6 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow">
         <div class="flex justify-between items-start mb-4">
           <div class="p-2 bg-teal-50 dark:bg-teal-900/20 rounded-lg text-teal-600">
             <span class="material-symbols-outlined">assignment_ind</span>
           </div>
-          <span class="text-green-600 bg-green-50 dark:bg-green-900/20 text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1">
+          <span
+            class="text-green-600 bg-green-50 dark:bg-green-900/20 text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1">
             <span class="material-symbols-outlined text-[14px]">trending_up</span> 24%
           </span>
         </div>
@@ -137,7 +81,8 @@
       </div>
     </div>
     <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
-      <div class="xl:col-span-2 bg-white dark:bg-slate-950 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm p-6">
+      <div
+        class="xl:col-span-2 bg-white dark:bg-slate-950 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm p-6">
         <div class="flex items-center justify-between mb-8">
           <div>
             <h3 class="text-lg font-bold text-slate-900 dark:text-white">Recruitment Activity</h3>
@@ -157,49 +102,56 @@
         <div class="w-full h-72 flex items-end justify-between gap-2 sm:gap-4 px-2">
           <div class="flex flex-col items-center gap-2 w-full h-full justify-end group cursor-pointer">
             <div class="relative w-full max-w-[40px] flex items-end gap-1 h-[60%]">
-              <div class="w-1/2 bg-blue-200 dark:bg-blue-800 rounded-t h-[80%] transition-all group-hover:bg-blue-300"></div>
+              <div class="w-1/2 bg-blue-200 dark:bg-blue-800 rounded-t h-[80%] transition-all group-hover:bg-blue-300">
+              </div>
               <div class="w-1/2 bg-primary rounded-t h-[40%] transition-all group-hover:bg-blue-600"></div>
             </div>
             <span class="text-xs font-bold text-gray-400 group-hover:text-primary">Wk 1</span>
           </div>
           <div class="flex flex-col items-center gap-2 w-full h-full justify-end group cursor-pointer">
             <div class="relative w-full max-w-[40px] flex items-end gap-1 h-[85%]">
-              <div class="w-1/2 bg-blue-200 dark:bg-blue-800 rounded-t h-[90%] transition-all group-hover:bg-blue-300"></div>
+              <div class="w-1/2 bg-blue-200 dark:bg-blue-800 rounded-t h-[90%] transition-all group-hover:bg-blue-300">
+              </div>
               <div class="w-1/2 bg-primary rounded-t h-[65%] transition-all group-hover:bg-blue-600"></div>
             </div>
             <span class="text-xs font-bold text-gray-400 group-hover:text-primary">Wk 2</span>
           </div>
           <div class="flex flex-col items-center gap-2 w-full h-full justify-end group cursor-pointer">
             <div class="relative w-full max-w-[40px] flex items-end gap-1 h-[50%]">
-              <div class="w-1/2 bg-blue-200 dark:bg-blue-800 rounded-t h-[70%] transition-all group-hover:bg-blue-300"></div>
+              <div class="w-1/2 bg-blue-200 dark:bg-blue-800 rounded-t h-[70%] transition-all group-hover:bg-blue-300">
+              </div>
               <div class="w-1/2 bg-primary rounded-t h-[50%] transition-all group-hover:bg-blue-600"></div>
             </div>
             <span class="text-xs font-bold text-gray-400 group-hover:text-primary">Wk 3</span>
           </div>
           <div class="flex flex-col items-center gap-2 w-full h-full justify-end group cursor-pointer">
             <div class="relative w-full max-w-[40px] flex items-end gap-1 h-[90%]">
-              <div class="w-1/2 bg-blue-200 dark:bg-blue-800 rounded-t h-[100%] transition-all group-hover:bg-blue-300"></div>
+              <div class="w-1/2 bg-blue-200 dark:bg-blue-800 rounded-t h-[100%] transition-all group-hover:bg-blue-300">
+              </div>
               <div class="w-1/2 bg-primary rounded-t h-[80%] transition-all group-hover:bg-blue-600"></div>
             </div>
             <span class="text-xs font-bold text-gray-400 group-hover:text-primary">Wk 4</span>
           </div>
           <div class="flex flex-col items-center gap-2 w-full h-full justify-end group cursor-pointer">
             <div class="relative w-full max-w-[40px] flex items-end gap-1 h-[65%]">
-              <div class="w-1/2 bg-blue-200 dark:bg-blue-800 rounded-t h-[85%] transition-all group-hover:bg-blue-300"></div>
+              <div class="w-1/2 bg-blue-200 dark:bg-blue-800 rounded-t h-[85%] transition-all group-hover:bg-blue-300">
+              </div>
               <div class="w-1/2 bg-primary rounded-t h-[55%] transition-all group-hover:bg-blue-600"></div>
             </div>
             <span class="text-xs font-bold text-gray-400 group-hover:text-primary">Wk 5</span>
           </div>
         </div>
       </div>
-      <div class="bg-white dark:bg-slate-950 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm p-6 flex flex-col">
+      <div
+        class="bg-white dark:bg-slate-950 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm p-6 flex flex-col">
         <div class="flex items-center justify-between mb-6">
           <h3 class="text-lg font-bold text-slate-900 dark:text-white">Recent Activity</h3>
           <button class="text-primary text-sm font-bold hover:underline">View All</button>
         </div>
         <div class="flex flex-col gap-6 overflow-y-auto max-h-[340px] custom-scrollbar pr-2">
           <div class="flex gap-4">
-            <div class="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center shrink-0 border border-blue-100 dark:border-blue-900">
+            <div
+              class="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center shrink-0 border border-blue-100 dark:border-blue-900">
               <span class="material-symbols-outlined text-primary text-sm">person_add</span>
             </div>
             <div class="flex flex-col gap-1">
@@ -209,7 +161,8 @@
             </div>
           </div>
           <div class="flex gap-4">
-            <div class="w-10 h-10 rounded-full bg-green-50 dark:bg-green-900/20 flex items-center justify-center shrink-0 border border-green-100 dark:border-green-900">
+            <div
+              class="w-10 h-10 rounded-full bg-green-50 dark:bg-green-900/20 flex items-center justify-center shrink-0 border border-green-100 dark:border-green-900">
               <span class="material-symbols-outlined text-green-600 text-sm">check_circle</span>
             </div>
             <div class="flex flex-col gap-1">
@@ -219,7 +172,8 @@
             </div>
           </div>
           <div class="flex gap-4">
-            <div class="w-10 h-10 rounded-full bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center shrink-0 border border-orange-100 dark:border-orange-900">
+            <div
+              class="w-10 h-10 rounded-full bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center shrink-0 border border-orange-100 dark:border-orange-900">
               <span class="material-symbols-outlined text-orange-600 text-sm">assignment</span>
             </div>
             <div class="flex flex-col gap-1">
@@ -229,7 +183,8 @@
             </div>
           </div>
           <div class="flex gap-4">
-            <div class="w-10 h-10 rounded-full bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center shrink-0 border border-purple-100 dark:border-purple-900">
+            <div
+              class="w-10 h-10 rounded-full bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center shrink-0 border border-purple-100 dark:border-purple-900">
               <span class="material-symbols-outlined text-purple-600 text-sm">forum</span>
             </div>
             <div class="flex flex-col gap-1">
@@ -241,12 +196,16 @@
         </div>
       </div>
     </div>
-    <div class="mt-8 bg-white dark:bg-slate-950 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm overflow-hidden">
-      <div class="px-6 py-4 border-b border-gray-100 dark:border-slate-800 flex justify-between items-center bg-gray-50/50 dark:bg-slate-900/50">
+    <div
+      class="mt-8 bg-white dark:bg-slate-950 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm overflow-hidden">
+      <div
+        class="px-6 py-4 border-b border-gray-100 dark:border-slate-800 flex justify-between items-center bg-gray-50/50 dark:bg-slate-900/50">
         <h3 class="text-lg font-bold text-slate-900 dark:text-white">Latest Candidates</h3>
         <div class="flex gap-2">
-          <button class="px-3 py-1.5 text-xs font-bold text-gray-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg hover:bg-gray-50 transition-colors">Filter</button>
-          <button class="px-3 py-1.5 text-xs font-bold text-gray-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg hover:bg-gray-50 transition-colors">Export</button>
+          <button
+            class="px-3 py-1.5 text-xs font-bold text-gray-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg hover:bg-gray-50 transition-colors">Filter</button>
+          <button
+            class="px-3 py-1.5 text-xs font-bold text-gray-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg hover:bg-gray-50 transition-colors">Export</button>
         </div>
       </div>
       <div class="overflow-x-auto">
@@ -263,12 +222,15 @@
           <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
             <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors">
               <td class="px-6 py-4 font-medium text-slate-900 dark:text-white flex items-center gap-3">
-                <div class="w-8 h-8 rounded-full bg-gray-200 dark:bg-slate-700 bg-cover" data-alt="Candidate Avatar" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBbpzBmWuo1-dIUcoVmEQBKyZ8jd3bkREzgUuZ-edTXWIi4yf6rb6P9-YAKXtMz380zd_MHilwFXXf2iYYfirO9waTPGE_UCKaFJad5O7--Se-MZuJH7I3l9d_2qwrLLRggqR-s5EhemdlIY8J5ln_m02T1ku_nRWGfrdY_sBIlf6x3wk0cQ6UtlgHakgVp8YQOTfRmffxkBIg0hbcGOGVOZL2DuBmiqhKAraQhjr5PL-eI_2wXlQwIe0LGfsN5NTt2fipVFS84j4JY");'></div>
+                <div class="w-8 h-8 rounded-full bg-gray-200 dark:bg-slate-700 bg-cover" data-alt="Candidate Avatar"
+                  style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBbpzBmWuo1-dIUcoVmEQBKyZ8jd3bkREzgUuZ-edTXWIi4yf6rb6P9-YAKXtMz380zd_MHilwFXXf2iYYfirO9waTPGE_UCKaFJad5O7--Se-MZuJH7I3l9d_2qwrLLRggqR-s5EhemdlIY8J5ln_m02T1ku_nRWGfrdY_sBIlf6x3wk0cQ6UtlgHakgVp8YQOTfRmffxkBIg0hbcGOGVOZL2DuBmiqhKAraQhjr5PL-eI_2wXlQwIe0LGfsN5NTt2fipVFS84j4JY");'>
+                </div>
                 Robert Fox
               </td>
               <td class="px-6 py-4 text-gray-500 dark:text-slate-400">Product Designer</td>
               <td class="px-6 py-4">
-                <span class="bg-blue-100 text-blue-800 text-xs font-bold px-2.5 py-0.5 rounded dark:bg-blue-900 dark:text-blue-300">Interview</span>
+                <span
+                  class="bg-blue-100 text-blue-800 text-xs font-bold px-2.5 py-0.5 rounded dark:bg-blue-900 dark:text-blue-300">Interview</span>
               </td>
               <td class="px-6 py-4 text-gray-500 dark:text-slate-400">Oct 24, 2023</td>
               <td class="px-6 py-4 text-right">
@@ -279,12 +241,15 @@
             </tr>
             <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors">
               <td class="px-6 py-4 font-medium text-slate-900 dark:text-white flex items-center gap-3">
-                <div class="w-8 h-8 rounded-full bg-gray-200 dark:bg-slate-700 bg-cover" data-alt="Candidate Avatar" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuD2UypwKFfzD_ZG7WypXhp7mHvbfGjfvN3NrJHqpS3tZ4089E8go7ISuEf8qKDs_LR2dlRtis3wawca1AmPkldwVCwNHvaqv2dpLujCydDOeKrzc7Gz6zrX1z1YVy_8HDXxCCsBZZW5Uk3z8JZQOFJyF8_h4PnSn6ReiEOKDOgETN8ipVXsdrZpWP3JiORLrioTzRkfdlVVQ230uXXfCIXk8K6PZFEUjYn6OTb6eht3VxqKOAR3kjttazB9ItEHFHvPdR7GOFF_CEc6");'></div>
+                <div class="w-8 h-8 rounded-full bg-gray-200 dark:bg-slate-700 bg-cover" data-alt="Candidate Avatar"
+                  style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuD2UypwKFfzD_ZG7WypXhp7mHvbfGjfvN3NrJHqpS3tZ4089E8go7ISuEf8qKDs_LR2dlRtis3wawca1AmPkldwVCwNHvaqv2dpLujCydDOeKrzc7Gz6zrX1z1YVy_8HDXxCCsBZZW5Uk3z8JZQOFJyF8_h4PnSn6ReiEOKDOgETN8ipVXsdrZpWP3JiORLrioTzRkfdlVVQ230uXXfCIXk8K6PZFEUjYn6OTb6eht3VxqKOAR3kjttazB9ItEHFHvPdR7GOFF_CEc6");'>
+                </div>
                 Jane Cooper
               </td>
               <td class="px-6 py-4 text-gray-500 dark:text-slate-400">Frontend Developer</td>
               <td class="px-6 py-4">
-                <span class="bg-green-100 text-green-800 text-xs font-bold px-2.5 py-0.5 rounded dark:bg-green-900 dark:text-green-300">Applied</span>
+                <span
+                  class="bg-green-100 text-green-800 text-xs font-bold px-2.5 py-0.5 rounded dark:bg-green-900 dark:text-green-300">Applied</span>
               </td>
               <td class="px-6 py-4 text-gray-500 dark:text-slate-400">Oct 23, 2023</td>
               <td class="px-6 py-4 text-right">
@@ -297,5 +262,3 @@
         </table>
       </div>
     </div>
-  </main>
-</div>

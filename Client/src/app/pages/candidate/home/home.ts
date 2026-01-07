@@ -2,20 +2,11 @@ import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { RouterModule } from '@angular/router';
+import { JobDto, JobService } from '../../../services/job.service';
+import { AuthService } from '../../../services/auth.service';
 
-// Interface khớp với Backend JobHomeDto
-export interface JobHomeDto {
-  jobId: string;
-  title: string;
-  companyName: string;
-  salaryMin: number | null;
-  salaryMax: number | null;
-  location: string | null;
-  employmentType: string | null;
-  deadline: string | null;
-  createdDate: string;
-  skills: string[];
-}
+// Interface khớp với Backend JobHomeDto - Dùng cái này hoặc JobDto từ service
+export interface JobHomeDto extends JobDto { }
 
 @Component({
   selector: 'app-home',
@@ -30,12 +21,14 @@ export class Home implements OnInit {
   error: string | null = null;
   isLoggedIn = false;
   userFullName = '';
+  userRole = '';
 
-  private apiUrl = 'https://localhost:7181/api'; // HTTPS backend
+  private apiUrl = '/api';
 
   constructor(
-    private http: HttpClient,
-    private cdr: ChangeDetectorRef // Inject ChangeDetectorRef cho zoneless mode
+    private jobService: JobService,
+    private cdr: ChangeDetectorRef,
+    private authService: AuthService
   ) { }
 
   ngOnInit(): void {
@@ -47,19 +40,21 @@ export class Home implements OnInit {
    * Kiểm tra xem user đã đăng nhập chưa
    */
   checkAuthStatus(): void {
-    if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
-      const token = window.localStorage.getItem('authToken');
-      this.isLoggedIn = !!token;
+    this.isLoggedIn = this.authService.isAuthenticated();
 
-      // Nếu có token, decode để lấy tên user (optional)
-      if (token) {
-        try {
-          const payload = JSON.parse(atob(token.split('.')[1]));
-          this.userFullName = payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] || 'User';
-        } catch (e) {
-          this.userFullName = 'User';
-        }
+    if (this.isLoggedIn) {
+      const user = this.authService.getCurrentUser();
+      if (user) {
+        this.userFullName = user.name || 'User';
+        this.userRole = user.role || '';
+        console.log('✅ User đã đăng nhập:', {
+          name: this.userFullName,
+          email: user.email,
+          role: this.userRole
+        });
       }
+    } else {
+      console.log('ℹ️ User chưa đăng nhập');
     }
   }
 
@@ -70,7 +65,8 @@ export class Home implements OnInit {
     this.loading = true;
     this.error = null;
 
-    this.http.get<JobHomeDto[]>(`${this.apiUrl}/jobs/latest/6`)
+    // Sử dụng JobService để tận dụng cấu hình Proxy (tránh lỗi SSL self-signed)
+    this.jobService.getLatestJobs(6)
       .subscribe({
         next: (jobs) => {
           this.featuredJobs = jobs;
@@ -91,7 +87,7 @@ export class Home implements OnInit {
    * Format salary range
    * VD: formatSalary(10000000, 20000000) => "10 - 20 Triệu"
    */
-  formatSalary(min: number | null, max: number | null): string {
+  formatSalary(min: number | null | undefined, max: number | null | undefined): string {
     if (!min && !max) return 'Thỏa thuận';
 
     const formatNumber = (num: number) => {
@@ -129,5 +125,12 @@ export class Home implements OnInit {
     if (diffDays <= 7) return `Còn ${diffDays} ngày`;
 
     return date.toLocaleDateString('vi-VN');
+  }
+
+  /**
+   * Đăng xuất
+   */
+  logout(): void {
+    this.authService.logout();
   }
 }

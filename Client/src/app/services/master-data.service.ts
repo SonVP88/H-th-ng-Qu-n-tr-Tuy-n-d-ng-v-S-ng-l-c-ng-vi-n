@@ -18,7 +18,7 @@ export interface Skill {
     providedIn: 'root'
 })
 export class MasterDataService {
-    private apiUrl = 'https://localhost:7181/api';
+    private apiUrl = '/api';
 
     constructor(private http: HttpClient) { }
 
