@@ -12,6 +12,7 @@ public class ApplicationService : IApplicationService
     private readonly IWebHostEnvironment _environment;
     private readonly ILogger<ApplicationService> _logger;
     private readonly IAiMatchingService _aiMatchingService;
+    private readonly IEmailService _emailService;
 
     // Các extension được phép
     private static readonly string[] AllowedExtensions = { ".pdf", ".docx" };
@@ -23,12 +24,14 @@ public class ApplicationService : IApplicationService
         UTC_DATNContext context,
         IWebHostEnvironment environment,
         ILogger<ApplicationService> logger,
-        IAiMatchingService aiMatchingService)
+        IAiMatchingService aiMatchingService,
+        IEmailService emailService)
     {
         _context = context;
         _environment = environment;
         _logger = logger;
         _aiMatchingService = aiMatchingService;
+        _emailService = emailService;
     }
 
 
@@ -223,7 +226,7 @@ public class ApplicationService : IApplicationService
                     throw new InvalidOperationException("Không tìm thấy PipelineStage trong hệ thống");
                 }
 
-                // Tạo Application
+                // Tạo Application với Snapshot thông tin liên lạc (Historical Data Integrity)
                 var application = new Entities.Application
                 {
                     ApplicationId = Guid.NewGuid(),
@@ -234,7 +237,10 @@ public class ApplicationService : IApplicationService
                     Source = "CAREER_SITE",
                     Status = "ACTIVE",
                     AppliedAt = DateTime.UtcNow,
-                    LastStageChangedAt = DateTime.UtcNow
+                    LastStageChangedAt = DateTime.UtcNow,
+                    // Snapshot thông tin liên lạc tại thời điểm nộp hồ sơ
+                    ContactEmail = request.Email?.Trim(),
+                    ContactPhone = request.Phone?.Trim()
                 };
 
                 _context.Applications.Add(application);
@@ -363,6 +369,7 @@ public class ApplicationService : IApplicationService
         var applications = await _context.Applications
             .AsNoTracking()
             .Include(a => a.Candidate)
+            .Include(a => a.Job) // Thêm để lấy JobTitle
             .Include(a => a.ResumeDocument)
                 .ThenInclude(rd => rd.File)
             .Include(a => a.ApplicationAiScores)
@@ -403,12 +410,14 @@ public class ApplicationService : IApplicationService
                 return new ApplicationDto
                 {
                     ApplicationId = x.Application.ApplicationId,
+                    CandidateId = x.Application.CandidateId, // Thêm để gọi API generate-opening
                     CandidateName = x.Application.Candidate?.FullName ?? "Unknown",
                     Email = x.Application.Candidate?.Email ?? "",
                     Phone = x.Application.Candidate?.Phone ?? "",
                     AppliedAt = x.Application.AppliedAt,
                     Status = x.Application.Status,
                     CvUrl = x.Application.ResumeDocument?.File?.Url ?? "",
+                    JobTitle = x.Application.Job?.Title, // Thêm để hiển thị trong email
                     MatchScore = (int?)x.LatestScore?.MatchingScore,
                     AiExplanation = explanation
                 };
@@ -420,12 +429,74 @@ public class ApplicationService : IApplicationService
 
     public async Task<bool> UpdateStatusAsync(Guid applicationId, string newStatus)
     {
-        var application = await _context.Applications.FindAsync(applicationId);
+        var application = await _context.Applications
+            .Include(a => a.Candidate)
+            .Include(a => a.Job)
+                .ThenInclude(j => j.CreatedByNavigation)
+            .FirstOrDefaultAsync(a => a.ApplicationId == applicationId);
+            
         if (application == null) return false;
 
+        var oldStatus = application.Status;
         application.Status = newStatus;
         
-        return await _context.SaveChangesAsync() > 0;
+        var saveResult = await _context.SaveChangesAsync() > 0;
+
+        // Gửi email tự động nếu status là HIRED hoặc REJECTED
+        if (saveResult && (newStatus == "HIRED" || newStatus == "REJECTED"))
+        {
+            try
+            {
+                _logger.LogInformation("📧 Bắt đầu gửi email thông báo cho ứng viên. Status: {Status}", newStatus);
+                
+                var candidateName = application.Candidate?.FullName ?? "Ứng viên";
+                var jobTitle = application.Job?.Title ?? "Vị trí ứng tuyển";
+                var companyName = application.Job?.CreatedByNavigation?.FullName ?? "Công ty";
+
+                // Ưu tiên lấy ContactEmail (snapshot tại thời điểm nộp hồ sơ)
+                // Fallback sang Candidate.Email nếu ContactEmail null (hồ sơ cũ)
+                var emailToSend = !string.IsNullOrEmpty(application.ContactEmail) 
+                    ? application.ContactEmail 
+                    : application.Candidate?.Email;
+
+                if (string.IsNullOrEmpty(emailToSend))
+                {
+                    _logger.LogWarning("⚠️ Không tìm thấy email của ứng viên. Bỏ qua gửi email.");
+                }
+                else
+                {
+                    _logger.LogInformation("📧 Email đích: {Email} (Source: {Source})", 
+                        emailToSend, 
+                        !string.IsNullOrEmpty(application.ContactEmail) ? "ContactEmail (Snapshot)" : "Candidate.Email (Fallback)");
+
+                    // Bước 1: Tạo nội dung email bằng AI
+                    var emailBody = await _aiMatchingService.GenerateEmailContentAsync(
+                        candidateName, 
+                        jobTitle, 
+                        newStatus, 
+                        companyName
+                    );
+
+                    // Bước 2: Tạo tiêu đề email
+                    var emailSubject = newStatus == "HIRED"
+                        ? $"🎉 Chúc mừng! Bạn đã trúng tuyển vị trí {jobTitle}"
+                        : $"Thông báo kết quả ứng tuyển vị trí {jobTitle}";
+
+                    // Bước 3: Gửi email
+                    await _emailService.SendEmailAsync(emailToSend, emailSubject, emailBody);
+                    
+                    _logger.LogInformation("✅ Đã gửi email thông báo thành công đến: {Email}", emailToSend);
+                }
+            }
+            catch (Exception emailEx)
+            {
+                // Không throw exception nếu gửi email thất bại, chỉ log warning
+                // Để không ảnh hưởng đến luồng chính (status đã được cập nhật thành công)
+                _logger.LogWarning(emailEx, "⚠️ Không thể gửi email thông báo, nhưng status đã được cập nhật thành công.");
+            }
+        }
+
+        return saveResult;
     }
 
     public async Task<List<MyApplicationDto>> GetMyApplicationsAsync(Guid userId)

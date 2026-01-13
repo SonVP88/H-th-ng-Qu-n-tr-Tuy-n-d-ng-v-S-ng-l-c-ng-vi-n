@@ -25,6 +25,16 @@ public partial class Application
 
     public string Status { get; set; }
 
+    /// <summary>
+    /// Snapshot email liên lạc tại thời điểm nộp hồ sơ (Historical Data Integrity)
+    /// </summary>
+    public string? ContactEmail { get; set; }
+
+    /// <summary>
+    /// Snapshot số điện thoại tại thời điểm nộp hồ sơ (Historical Data Integrity)
+    /// </summary>
+    public string? ContactPhone { get; set; }
+
     public virtual ICollection<ApplicationAiScore> ApplicationAiScores { get; set; } = new List<ApplicationAiScore>();
 
     public virtual ICollection<ApplicationNote> ApplicationNotes { get; set; } = new List<ApplicationNote>();

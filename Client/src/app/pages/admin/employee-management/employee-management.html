@@ -1,0 +1,396 @@
+<div class="container mx-auto px-4 py-6">
+  <!-- Header -->
+  <div class="mb-6">
+    <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Quản lý Nhân viên</h1>
+    <p class="text-gray-600 dark:text-slate-400">Quản lý danh sách HR và Interviewer trong hệ thống</p>
+  </div>
+
+  <!-- Action Bar -->
+  <div class="flex justify-between items-center mb-6">
+    <div class="flex items-center gap-3">
+      <button (click)="openAddModal()"
+        class="px-4 py-2 bg-primary hover:bg-blue-700 text-white rounded-lg text-sm font-bold transition-all shadow-sm flex items-center gap-2">
+        <span class="material-symbols-outlined text-sm">add</span>
+        Thêm nhân viên mới
+      </button>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <span class="text-sm text-gray-500 dark:text-slate-400">
+        Tổng: <span class="font-bold text-gray-900 dark:text-white">{{ employees().length }}</span> nhân viên
+      </span>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading()" class="space-y-4">
+    <div
+      class="bg-white dark:bg-slate-950 rounded-xl shadow-sm border border-gray-100 dark:border-slate-800 p-4 animate-pulse">
+      <div class="flex items-center gap-4">
+        <div class="h-12 w-12 rounded-full bg-gray-200 dark:bg-slate-700"></div>
+        <div class="flex-1 space-y-2">
+          <div class="h-4 bg-gray-200 dark:bg-slate-700 rounded w-1/4"></div>
+          <div class="h-3 bg-gray-200 dark:bg-slate-700 rounded w-1/3"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Success/Error Messages -->
+  <div *ngIf="successMessage() && !showModal()"
+    class="mb-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-200 rounded-lg">
+    {{ successMessage() }}
+  </div>
+
+  <div *ngIf="errorMessage() && !showModal()"
+    class="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 rounded-lg">
+    {{ errorMessage() }}
+  </div>
+
+  <!-- Employees Table -->
+  <div *ngIf="!isLoading() && employees().length > 0"
+    class="bg-white dark:bg-slate-950 rounded-xl shadow-sm border border-gray-100 dark:border-slate-800 overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-800">
+        <thead class="bg-gray-50 dark:bg-slate-900">
+          <tr>
+            <th scope="col"
+              class="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+              Nhân viên
+            </th>
+            <th scope="col"
+              class="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+              Số điện thoại
+            </th>
+            <th scope="col"
+              class="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+              Vai trò
+            </th>
+            <th scope="col"
+              class="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+              Trạng thái
+            </th>
+            <th scope="col"
+              class="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+              Ngày tạo
+            </th>
+            <th scope="col"
+              class="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+              Thao tác
+            </th>
+          </tr>
+        </thead>
+        <tbody class="bg-white dark:bg-slate-950 divide-y divide-gray-200 dark:divide-slate-800">
+          <tr *ngFor="let emp of paginatedEmployees()"
+            class="hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors">
+            <!-- Employee Info -->
+            <td class="px-6 py-4 whitespace-nowrap">
+              <div class="flex items-center">
+                <div class="flex-shrink-0 h-10 w-10">
+                  <div [ngClass]="getAvatarClass(emp.role)"
+                    class="h-10 w-10 rounded-full flex items-center justify-center font-bold text-sm">
+                    {{ getInitials(emp.fullName) }}
+                  </div>
+                </div>
+                <div class="ml-4">
+                  <div class="text-sm font-medium text-gray-900 dark:text-white">{{ emp.fullName }}</div>
+                  <div class="text-sm text-gray-500 dark:text-slate-400">{{ emp.email }}</div>
+                </div>
+              </div>
+            </td>
+
+            <!-- Phone -->
+            <td class="px-6 py-4 whitespace-nowrap">
+              <div class="text-sm text-gray-900 dark:text-white">{{ emp.phone }}</div>
+            </td>
+
+            <!-- Role Badge -->
+            <td class="px-6 py-4 whitespace-nowrap">
+              <span [ngClass]="getRoleBadgeClass(emp.role)" class="px-2.5 py-0.5 rounded-full text-xs font-bold">
+                {{ emp.role }}
+              </span>
+            </td>
+
+            <!-- Status -->
+            <td class="px-6 py-4 whitespace-nowrap">
+              <span *ngIf="emp.isActive"
+                class="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 px-2.5 py-0.5 rounded-full text-xs font-bold">
+                Hoạt động
+              </span>
+              <span *ngIf="!emp.isActive"
+                class="bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300 px-2.5 py-0.5 rounded-full text-xs font-bold">
+                Không hoạt động
+              </span>
+            </td>
+
+            <!-- Created Date -->
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-slate-400">
+              {{ formatDate(emp.createdAt) }}
+            </td>
+
+            <!-- Actions -->
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+              <div class="flex items-center gap-2">
+                <button (click)="viewEmployee(emp)"
+                  class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors flex items-center gap-1">
+                  <span class="material-symbols-outlined text-[18px]">visibility</span>
+                  Xem
+                </button>
+                <button (click)="deleteEmployee(emp.userId)" *ngIf="emp.isActive"
+                  class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition-colors flex items-center gap-1">
+                  <span class="material-symbols-outlined text-[18px]">delete</span>
+                  Xóa
+                </button>
+                <button *ngIf="!emp.isActive" (click)="reactivateEmployee(emp.userId)"
+                  class="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300 transition-colors flex items-center gap-1">
+                  <span class="material-symbols-outlined text-[18px]">restart_alt</span>
+                  Cập nhật
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div
+      class="px-6 py-4 bg-gray-50 dark:bg-slate-900/50 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between">
+      <p class="text-xs text-gray-500 dark:text-slate-400 font-medium">
+        Hiển thị {{ (currentPage() - 1) * itemsPerPage + 1 }} - {{ Math.min(currentPage() * itemsPerPage,
+        employees().length) }}
+        trên tổng số {{ employees().length }} nhân viên
+      </p>
+      <div class="flex items-center gap-1">
+        <button (click)="previousPage()" [disabled]="currentPage() === 1"
+          class="p-1.5 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark text-gray-400 hover:text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+          <span class="material-symbols-outlined text-base">chevron_left</span>
+        </button>
+
+        <button *ngFor="let page of getPageNumbers()" (click)="page > 0 ? changePage(page) : null"
+          [class.bg-primary]="page === currentPage()" [class.text-white]="page === currentPage()"
+          [class.text-gray-600]="page !== currentPage()"
+          class="w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"
+          [disabled]="page === -1">
+          {{ page === -1 ? '...' : page }}
+        </button>
+
+        <button (click)="nextPage()" [disabled]="currentPage() === totalPages()"
+          class="p-1.5 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark text-gray-400 hover:text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+          <span class="material-symbols-outlined text-base">chevron_right</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!isLoading() && employees().length === 0"
+    class="bg-white dark:bg-slate-950 rounded-xl shadow-sm border border-gray-100 dark:border-slate-800 p-12 text-center">
+    <div class="flex flex-col items-center gap-4">
+      <div class="w-24 h-24 rounded-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center">
+        <span class="material-symbols-outlined text-gray-400 dark:text-slate-500" style="font-size: 48px;">people</span>
+      </div>
+      <div>
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Chưa có nhân viên nào</h3>
+        <p class="text-gray-500 dark:text-slate-400 text-sm mb-4">Bắt đầu thêm HR hoặc Interviewer vào hệ thống</p>
+        <button (click)="openAddModal()"
+          class="px-5 py-2.5 bg-primary hover:bg-blue-700 text-white rounded-lg text-sm font-bold transition-all shadow-sm">
+          Thêm nhân viên đầu tiên
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Employee Modal -->
+  <div *ngIf="showModal()" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white dark:bg-slate-950 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-slate-800">
+        <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary">person_add</span>
+          Thêm nhân viên mới
+        </h2>
+        <button (click)="closeModal()"
+          class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+
+      <form [formGroup]="employeeForm" (ngSubmit)="onSubmit()">
+        <!-- Modal Body -->
+        <div class="p-6 space-y-4">
+          <!-- Error/Success Messages in Modal -->
+          <div *ngIf="errorMessage()"
+            class="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 rounded-lg text-sm">
+            {{ errorMessage() }}
+          </div>
+
+          <div *ngIf="successMessage()"
+            class="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-200 rounded-lg text-sm">
+            {{ successMessage() }}
+          </div>
+
+          <!-- Full Name -->
+          <div>
+            <label for="fullName" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+              Họ tên <span class="text-red-500">*</span>
+            </label>
+            <input type="text" id="fullName" formControlName="fullName" placeholder="Nguyễn Văn A"
+              [class.border-red-500]="hasError('fullName')"
+              class="w-full px-4 py-2 border border-gray-300 dark:border-slate-700 dark:bg-slate-900 dark:text-white rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+            <span *ngIf="hasError('fullName')" class="text-red-500 text-xs mt-1">{{ getErrorMessage('fullName')
+              }}</span>
+          </div>
+
+          <!-- Email -->
+          <div>
+            <label for="email" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+              Email <span class="text-red-500">*</span>
+            </label>
+            <input type="email" id="email" formControlName="email" placeholder="example@company.com"
+              [class.border-red-500]="hasError('email')"
+              class="w-full px-4 py-2 border border-gray-300 dark:border-slate-700 dark:bg-slate-900 dark:text-white rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+            <span *ngIf="hasError('email')" class="text-red-500 text-xs mt-1">{{ getErrorMessage('email') }}</span>
+          </div>
+
+          <!-- Phone Number -->
+          <div>
+            <label for="phoneNumber" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+              Số điện thoại <span class="text-red-500">*</span>
+            </label>
+            <input type="tel" id="phoneNumber" formControlName="phoneNumber" placeholder="0123456789"
+              [class.border-red-500]="hasError('phoneNumber')"
+              class="w-full px-4 py-2 border border-gray-300 dark:border-slate-700 dark:bg-slate-900 dark:text-white rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+            <span *ngIf="hasError('phoneNumber')" class="text-red-500 text-xs mt-1">{{ getErrorMessage('phoneNumber')
+              }}</span>
+          </div>
+
+          <!-- Role -->
+          <div>
+            <label for="role" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+              Vai trò <span class="text-red-500">*</span>
+            </label>
+            <select id="role" formControlName="role"
+              class="w-full px-4 py-2 border border-gray-300 dark:border-slate-700 dark:bg-slate-900 dark:text-white rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+              <option value="HR">HR Manager</option>
+              <option value="INTERVIEWER">Interviewer</option>
+            </select>
+          </div>
+
+          <!-- Info Note -->
+          <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+            <p class="text-sm text-blue-800 dark:text-blue-200 flex items-start gap-2">
+              <span class="material-symbols-outlined text-base mt-0.5">info</span>
+              <span>
+                Mật khẩu mặc định: <strong>123456</strong><br>
+                <small class="text-xs">Nhân viên nên đổi mật khẩu sau lần đăng nhập đầu tiên</small>
+              </span>
+            </p>
+          </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div
+          class="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900/50">
+          <button type="button" (click)="closeModal()" [disabled]="isLoading()"
+            class="px-4 py-2 border border-gray-300 dark:border-slate-700 text-gray-700 dark:text-slate-300 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors font-medium disabled:opacity-50">
+            Hủy
+          </button>
+          <button type="submit" [disabled]="isLoading()"
+            class="px-6 py-2 bg-primary hover:bg-blue-700 text-white rounded-lg transition-colors font-semibold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+            <span *ngIf="!isLoading()" class="material-symbols-outlined text-sm">save</span>
+            <span *ngIf="isLoading()" class="animate-spin">⏳</span>
+            {{ isLoading() ? 'Đang tạo...' : 'Tạo nhân viên' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- View Employee Detail Modal -->
+  <div *ngIf="showEditModal()" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white dark:bg-slate-950 rounded-2xl shadow-2xl w-full max-w-md">
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-slate-800">
+        <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary">badge</span>
+          Chi tiết nhân viên
+        </h2>
+        <button (click)="closeEditModal()"
+          class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-6" *ngIf="selectedEmployee()">
+        <form [formGroup]="employeeForm" class="space-y-4">
+          <!-- Họ tên -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Họ tên <span class="text-red-500">*</span>
+            </label>
+            <input formControlName="fullName" type="text"
+              class="w-full px-4 py-2 border border-gray-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary dark:bg-slate-900 dark:text-white transition-all"
+              placeholder="Nguyễn Văn A" />
+            <p *ngIf="employeeForm.get('fullName')?.invalid && employeeForm.get('fullName')?.touched"
+              class="text-red-500 text-xs mt-1">Họ tên là bắt buộc</p>
+          </div>
+
+          <!-- Email -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Email <span class="text-red-500">*</span>
+            </label>
+            <input formControlName="email" type="email"
+              class="w-full px-4 py-2 border border-gray-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary dark:bg-slate-900 dark:text-white transition-all"
+              placeholder="example@company.com" />
+            <p *ngIf="employeeForm.get('email')?.invalid && employeeForm.get('email')?.touched"
+              class="text-red-500 text-xs mt-1">Email không hợp lệ</p>
+          </div>
+
+          <!-- Số điện thoại -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Số điện thoại <span class="text-red-500">*</span>
+            </label>
+            <input formControlName="phoneNumber" type="tel"
+              class="w-full px-4 py-2 border border-gray-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary dark:bg-slate-900 dark:text-white transition-all"
+              placeholder="0123456789" />
+            <p *ngIf="employeeForm.get('phoneNumber')?.invalid && employeeForm.get('phoneNumber')?.touched"
+              class="text-red-500 text-xs mt-1">Số điện thoại là bắt buộc</p>
+          </div>
+
+          <!-- Vai trò -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Vai trò <span class="text-red-500">*</span>
+            </label>
+            <select formControlName="role"
+              class="w-full px-4 py-2 border border-gray-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary dark:bg-slate-900 dark:text-white transition-all">
+              <option value="HR">HR</option>
+              <option value="INTERVIEWER">INTERVIEWER</option>
+            </select>
+          </div>
+        </form>
+      </div>
+
+      <!-- Modal Footer -->
+      <div
+        class="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900/50">
+        <button (click)="closeEditModal()"
+          class="px-4 py-2 border border-gray-300 dark:border-slate-700 text-gray-700 dark:text-slate-300 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors font-medium">
+          Đóng
+        </button>
+        <button (click)="updateEmployee()" [disabled]="isLoading()"
+          class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-bold shadow-lg shadow-blue-500/30 disabled:opacity-50 flex items-center gap-2">
+          <span class="material-symbols-outlined text-[20px]">edit</span>
+          {{ isLoading() ? 'Đang lưu...' : 'Sửa' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="p-6" *ngIf="selectedEmployee()">
+  <!-- Avatar + Name + Role -->
+  <div class="flex items-center gap-4 pb-4 mb-4 border-b border-gray-100 dark:border-slate-800">

@@ -1,0 +1,40 @@
+<div
+    class="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-orange-50 dark:from-slate-900 dark:to-slate-800 px-4">
+    <div class="text-center max-w-md">
+        <!-- Icon -->
+        <div class="mb-8 animate-bounce">
+            <span class="text-9xl">🛡️</span>
+        </div>
+
+        <!-- Error Code -->
+        <h1 class="text-6xl font-black text-red-600 dark:text-red-400 mb-4">
+            403
+        </h1>
+
+        <!-- Title -->
+        <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+            ACCESS DENIED
+        </h2>
+
+        <!-- Description -->
+        <p class="text-lg text-gray-600 dark:text-gray-400 mb-8">
+            Bạn không có quyền truy cập vào trang này.<br />
+            Vui lòng liên hệ quản trị viên nếu bạn cho rằng đây là lỗi.
+        </p>
+
+        <!-- Action Button -->
+        <button (click)="goHome()"
+            class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-all shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transform hover:scale-105">
+            <span class="flex items-center gap-2">
+                <span class="material-symbols-outlined">home</span>
+                Quay về trang chủ
+            </span>
+        </button>
+
+        <!-- Additional Info -->
+        <div class="mt-8 text-sm text-gray-500 dark:text-gray-400">
+            <p>Nếu bạn cần trợ giúp, vui lòng liên hệ:</p>
+            <p class="font-semibold">support@company.com</p>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,61 @@
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+
+export interface EmployeeDto {
+  userId: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  role: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface CreateEmployeeRequest {
+  fullName: string;
+  email: string;
+  phoneNumber: string;
+  role: 'HR' | 'INTERVIEWER';
+}
+
+export interface ApiResponse<T> {
+  success?: boolean;
+  data?: T;
+  message?: string;
+}
+
+@Injectable({
+  providedIn: 'root',
+})
+export class EmployeeService {
+  private apiUrl = '/api/employee';
+
+  constructor(private http: HttpClient) { }
+
+  /**
+   * Lấy danh sách nhân viên (HR và INTERVIEWER)
+   */
+  getEmployees(): Observable<EmployeeDto[]> {
+    return this.http.get<EmployeeDto[]>(this.apiUrl);
+  }
+
+  /**
+   * Tạo nhân viên mới
+   */
+  createEmployee(request: CreateEmployeeRequest): Observable<EmployeeDto> {
+    return this.http.post<EmployeeDto>(this.apiUrl, request);
+  }
+
+  deactivateEmployee(userId: string): Observable<any> {
+    return this.http.put(`${this.apiUrl}/${userId}/deactivate`, {});
+  }
+
+  reactivateEmployee(userId: string): Observable<any> {
+    return this.http.put(`${this.apiUrl}/${userId}/reactivate`, {});
+  }
+
+  updateEmployee(userId: string, request: CreateEmployeeRequest): Observable<EmployeeDto> {
+    return this.http.put<EmployeeDto>(`${this.apiUrl}/${userId}`, request);
+  }
+}

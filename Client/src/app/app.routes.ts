@@ -7,14 +7,16 @@ import { MyApplications } from './pages/candidate/my-applications/my-application
 import { Dashboard } from './pages/hr/dashboard/dashboard';
 import { HrLayout } from './layouts/hr-layout/hr-layout';
 import { PostJob } from './pages/hr/post-job/post-job';
-
-
 import { ManageApplications } from './pages/hr/manage-applications/manage-applications';
+import { EmployeeManagement } from './pages/admin/employee-management/employee-management';
+import { ForbiddenComponent } from './pages/forbidden/forbidden.component';
+import { roleGuard } from './guards/role.guard';
 
 export const routes: Routes = [
 
   { path: 'login', component: Login },
   { path: 'register', component: Register },
+  { path: '403', component: ForbiddenComponent },
 
   {
     path: 'candidate',
@@ -38,6 +40,14 @@ export const routes: Routes = [
       // Quản lý hồ sơ
       { path: 'manage-applications/:jobId', component: ManageApplications },
       { path: 'manage-applications', component: ManageApplications },
+
+      // Quản lý nhân viên (Chỉ ADMIN)
+      {
+        path: 'employees',
+        component: EmployeeManagement,
+        canActivate: [roleGuard],
+        data: { roles: ['ADMIN'] }
+      },
 
       // Mặc định vào dashboard nếu chỉ gõ /hr
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }

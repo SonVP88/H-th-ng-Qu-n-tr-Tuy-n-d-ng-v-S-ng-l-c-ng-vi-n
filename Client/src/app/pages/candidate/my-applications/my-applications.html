@@ -83,14 +83,21 @@
         </div>
         <div class="flex items-center gap-3">
           <div class="hidden sm:flex rounded-lg bg-white border border-slate-200 p-1 shadow-sm">
-            <button class="rounded-md bg-slate-100 px-4 py-1.5 text-sm font-semibold text-slate-900 shadow-sm">Tất
-              cả</button>
-            <button
-              class="rounded-md px-4 py-1.5 text-sm font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-700">Đang
-              chờ</button>
-            <button
-              class="rounded-md px-4 py-1.5 text-sm font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-700">Đã
-              xong</button>
+            <button (click)="setTab('ALL')"
+              [class]="currentTab === 'ALL' ? 'bg-slate-100 text-slate-900 font-semibold shadow-sm' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700 font-medium'"
+              class="rounded-md px-4 py-1.5 text-sm transition-all">
+              Tất cả
+            </button>
+            <button (click)="setTab('PENDING')"
+              [class]="currentTab === 'PENDING' ? 'bg-slate-100 text-slate-900 font-semibold shadow-sm' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700 font-medium'"
+              class="rounded-md px-4 py-1.5 text-sm transition-all">
+              Đang chờ
+            </button>
+            <button (click)="setTab('FINISHED')"
+              [class]="currentTab === 'FINISHED' ? 'bg-slate-100 text-slate-900 font-semibold shadow-sm' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700 font-medium'"
+              class="rounded-md px-4 py-1.5 text-sm transition-all">
+              Đã xong
+            </button>
           </div>
         </div>
       </div>
@@ -116,7 +123,7 @@
 
       <div class="flex flex-col gap-4" *ngIf="!isLoading && !isEmpty">
 
-        <div *ngFor="let app of myApplications"
+        <div *ngFor="let app of filteredApplications"
           class="group relative flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-xl bg-white p-5 shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-transparent hover:border-primary/20 hover:shadow-[0_4px_12px_rgba(39,102,236,0.08)] transition-all duration-200"
           [class.opacity-80]="app.status === 'REJECTED'" [class.hover:opacity-100]="app.status === 'REJECTED'">
 
@@ -127,8 +134,8 @@
               {{ app.companyName.charAt(0).toUpperCase() }}
             </div>
             <div class="flex flex-col gap-1">
-              <h3
-                class="text-[#0d121b] text-lg font-bold leading-tight group-hover:text-primary transition-colors cursor-pointer">
+              <h3 [routerLink]="['/candidate/job-detail', app.jobId]"
+                class="text-[#0d121b] text-lg font-bold leading-tight hover:text-primary transition-colors cursor-pointer">
                 {{ app.jobTitle }}</h3>
               <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-sm text-slate-500">
                 <span class="font-medium text-slate-700">{{ app.companyName }}</span>
@@ -143,55 +150,65 @@
 
           <div
             class="flex items-center justify-between md:flex-col md:items-end md:justify-center gap-3 pl-16 md:pl-0 border-t border-slate-100 md:border-0 pt-3 md:pt-0">
-            <div *ngIf="app.status === 'INTERVIEW'"
-              class="px-3 py-1 rounded-full bg-green-50 border border-green-100 text-green-700 text-xs font-bold uppercase tracking-wide flex items-center gap-1">
+            <div *ngIf="app.status === 'HIRED'" [title]="getTooltip('HIRED')"
+              class="cursor-help px-3 py-1.5 rounded-full bg-indigo-100 border border-indigo-300 text-indigo-700 text-xs font-bold uppercase tracking-wide flex items-center gap-1.5 shadow-sm animate-pulse">
+              <span class="text-base">🎉</span>
+              Đã Trúng Tuyển
+            </div>
+            <div *ngIf="app.status === 'INTERVIEW'" [title]="getTooltip('INTERVIEW')"
+              class="cursor-help px-3 py-1 rounded-full bg-green-50 border border-green-100 text-green-700 text-xs font-bold uppercase tracking-wide flex items-center gap-1">
               <span class="size-1.5 rounded-full bg-green-500"></span>
               Phỏng vấn
             </div>
-            <div *ngIf="app.status === 'NEW_APPLIED'"
-              class="px-3 py-1 rounded-full bg-blue-50 border border-blue-100 text-primary text-xs font-bold uppercase tracking-wide flex items-center gap-1">
+            <div *ngIf="app.status === 'NEW_APPLIED'" [title]="getTooltip('NEW_APPLIED')"
+              class="cursor-help px-3 py-1 rounded-full bg-blue-50 border border-blue-100 text-primary text-xs font-bold uppercase tracking-wide flex items-center gap-1">
               <span class="size-1.5 rounded-full bg-primary"></span>
               Đã nộp
             </div>
-            <div *ngIf="app.status === 'REJECTED'"
-              class="px-3 py-1 rounded-full bg-red-50 border border-red-100 text-red-600 text-xs font-bold uppercase tracking-wide flex items-center gap-1">
-              <span class="material-symbols-outlined" style="font-size: 12px;">close</span>
-              Từ chối
+            <div *ngIf="app.status === 'REJECTED'" [title]="getTooltip('REJECTED')"
+              class="cursor-help px-3 py-1 rounded-full bg-gray-100 border border-gray-200 text-gray-500 text-xs font-medium uppercase tracking-wide flex items-center gap-1">
+              <span class="material-symbols-outlined" style="font-size: 12px;">remove_circle_outline</span>
+              Không phù hợp
             </div>
 
-            <button
-              class="group/btn flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-primary transition-colors">
+            <a [href]="app.cvUrl" target="_blank"
+              class="group/btn flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-primary transition-colors cursor-pointer">
               <span class="material-symbols-outlined group-hover/btn:scale-110 transition-transform"
                 style="font-size: 18px;"
                 [innerText]="app.status === 'NEW_APPLIED' ? 'description' : 'visibility'"></span>
               Xem CV
-            </button>
+            </a>
           </div>
         </div>
 
       </div>
 
-      <div *ngIf="isEmpty"
+
+
+      <!-- Empty State for Filtered List (hiển thị khi list lọc rỗng nhưng list gốc có thể không rỗng) -->
+      <div *ngIf="!isLoading && filteredApplications.length === 0"
         class="mt-10 flex flex-col items-center justify-center gap-6 py-12 px-4 rounded-xl bg-white shadow-sm border border-slate-100">
         <div class="relative flex items-center justify-center">
-          <div class="size-32 rounded-full bg-blue-50 flex items-center justify-center">
-            <div class="size-24 rounded-full bg-blue-100 flex items-center justify-center">
-              <span class="material-symbols-outlined text-primary" style="font-size: 48px;">person_search</span>
+          <div class="size-32 rounded-full bg-slate-50 flex items-center justify-center">
+            <div class="size-24 rounded-full bg-slate-100 flex items-center justify-center">
+              <span class="material-symbols-outlined text-slate-400" style="font-size: 48px;">assignment_late</span>
             </div>
-          </div>
-          <div
-            class="absolute -right-2 top-0 size-8 rounded-full bg-white shadow-md flex items-center justify-center text-orange-400 animate-bounce"
-            style="animation-delay: 0.2s;">
-            <span class="material-symbols-outlined" style="font-size: 18px;">search</span>
           </div>
         </div>
         <div class="flex max-w-[400px] flex-col items-center gap-2 text-center">
-          <p class="text-[#0d121b] text-xl font-bold leading-tight">Bạn chưa ứng tuyển công việc nào</p>
+          <p class="text-[#0d121b] text-xl font-bold leading-tight">
+            <ng-container *ngIf="currentTab === 'PENDING'">Không có hồ sơ đang chờ</ng-container>
+            <ng-container *ngIf="currentTab === 'FINISHED'">Không có hồ sơ đã hoàn thành</ng-container>
+            <ng-container *ngIf="currentTab === 'ALL'">Bạn chưa ứng tuyển công việc nào</ng-container>
+          </p>
           <p class="text-slate-500 text-sm font-normal leading-relaxed">
-            Đừng bỏ lỡ cơ hội nghề nghiệp tốt. Hãy bắt đầu tìm kiếm công việc phù hợp với kỹ năng của bạn ngay hôm nay.
+            <ng-container *ngIf="currentTab === 'PENDING'">Bạn không có hồ sơ nào đang chờ duyệt.</ng-container>
+            <ng-container *ngIf="currentTab === 'FINISHED'">Bạn chưa có hồ sơ nào đã phỏng vấn hoặc bị từ
+              chối.</ng-container>
+            <ng-container *ngIf="currentTab === 'ALL'">Hãy tìm kiếm công việc phù hợp và ứng tuyển ngay!</ng-container>
           </p>
         </div>
-        <button
+        <button (click)="goToJobSearch()"
           class="flex items-center justify-center gap-2 rounded-xl bg-primary px-8 py-3 text-white shadow-lg shadow-blue-500/30 hover:bg-blue-700 hover:shadow-blue-600/40 transition-all active:scale-95">
           <span class="font-bold text-sm">Tìm việc ngay</span>
           <span class="material-symbols-outlined" style="font-size: 18px;">arrow_forward</span>

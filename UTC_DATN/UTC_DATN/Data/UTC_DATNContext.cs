@@ -66,6 +66,8 @@ public partial class UTC_DATNContext : DbContext
 
     public virtual DbSet<Interviewer> Interviewers { get; set; }
 
+    public virtual DbSet<InterviewEvaluation> InterviewEvaluations { get; set; }
+
     public virtual DbSet<Job> Jobs { get; set; }
 
     public virtual DbSet<JobSkillMap> JobSkillMaps { get; set; }
@@ -648,6 +650,32 @@ public partial class UTC_DATNContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Interviewers_User");
+        });
+
+        modelBuilder.Entity<InterviewEvaluation>(entity =>
+        {
+            entity.HasKey(e => e.EvaluationId);
+
+            entity.HasIndex(e => e.InterviewId, "IX_InterviewEvaluations_InterviewId");
+
+            entity.HasIndex(e => e.InterviewerId, "IX_InterviewEvaluations_InterviewerId");
+
+            entity.Property(e => e.EvaluationId).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.Score).IsRequired();
+            entity.Property(e => e.Result)
+                .IsRequired()
+                .HasMaxLength(20);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
+
+            entity.HasOne(d => d.Interview).WithMany()
+                .HasForeignKey(d => d.InterviewId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_InterviewEvaluations_Interview");
+
+            entity.HasOne(d => d.Interviewer).WithMany()
+                .HasForeignKey(d => d.InterviewerId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_InterviewEvaluations_Interviewer");
         });
 
         modelBuilder.Entity<Job>(entity =>

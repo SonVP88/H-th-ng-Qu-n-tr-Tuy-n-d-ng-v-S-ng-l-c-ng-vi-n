@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 
 export interface ApplicationDto {
     applicationId: string;
+    candidateId: string;   // Thêm để gọi API generate-opening
     candidateName: string;
     email: string;
     phone: string;
@@ -12,6 +13,7 @@ export interface ApplicationDto {
     status: string;
     matchScore?: number;
     aiExplanation?: string;
+    jobTitle?: string;     // Thêm để hiển thị trong email
 }
 
 export interface MyApplicationDto {

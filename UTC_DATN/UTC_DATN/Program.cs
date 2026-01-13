@@ -13,6 +13,9 @@ builder.Services.AddScoped<IMasterDataService, MasterDataService>();
 builder.Services.AddScoped<IJobService, JobService>();
 builder.Services.AddScoped<IApplicationService, ApplicationService>();
 builder.Services.AddScoped<IAiMatchingService, AiMatchingService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IInterviewService, InterviewService>();
+builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 
 // Đăng ký HttpClient cho AiMatchingService
 builder.Services.AddHttpClient<IAiMatchingService, AiMatchingService>();
@@ -70,6 +73,13 @@ builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(optio
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
+
+// Seed initial data (Roles và Admin User)
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<UTC_DATNContext>();
+    await DbInitializer.InitializeAsync(context);
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

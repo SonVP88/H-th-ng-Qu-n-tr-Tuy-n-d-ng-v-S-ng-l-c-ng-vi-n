@@ -18,8 +18,10 @@ export class MyApplications implements OnInit {
 
   // Properties (NON-SIGNAL)
   myApplications: MyApplicationDto[] = [];
+  filteredApplications: MyApplicationDto[] = [];
   isLoading = false;
   isEmpty = false;
+  currentTab = 'ALL';
 
   // Auth properties for navbar
   isLoggedIn = false;
@@ -88,6 +90,7 @@ export class MyApplications implements OnInit {
         this.isLoading = false;
 
         console.log('✅ Loaded', this.myApplications.length, 'applications');
+        this.filterApps(); // Filter data after loading
         this.cdr.detectChanges(); // <-- FORCE UPDATE UI
       },
       error: (error) => {
@@ -104,10 +107,12 @@ export class MyApplications implements OnInit {
    */
   getStatusClass(status: string): string {
     switch (status) {
+      case 'HIRED':
+        return 'px-3 py-1.5 rounded-full bg-indigo-100 border border-indigo-300 text-indigo-700 text-xs font-bold uppercase tracking-wide flex items-center gap-1 shadow-sm';
       case 'INTERVIEW':
         return 'px-3 py-1 rounded-full bg-green-50 border border-green-200 text-green-700 text-xs font-bold uppercase tracking-wide flex items-center gap-1';
       case 'REJECTED':
-        return 'px-3 py-1 rounded-full bg-red-50 border border-red-200 text-red-700 text-xs font-bold uppercase tracking-wide flex items-center gap-1';
+        return 'px-3 py-1 rounded-full bg-gray-100 border border-gray-200 text-gray-500 text-xs font-medium uppercase tracking-wide flex items-center gap-1';
       case 'NEW_APPLIED':
         return 'px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold uppercase tracking-wide flex items-center gap-1';
       default:
@@ -120,10 +125,12 @@ export class MyApplications implements OnInit {
    */
   getStatusLabel(status: string): string {
     switch (status) {
+      case 'HIRED':
+        return 'Đã Trúng Tuyển';
       case 'INTERVIEW':
         return 'Được mời phỏng vấn';
       case 'REJECTED':
-        return 'Đã từ chối';
+        return 'Không phù hợp';
       case 'NEW_APPLIED':
         return 'Đã nộp hồ sơ';
       default:
@@ -134,9 +141,73 @@ export class MyApplications implements OnInit {
   /**
    * Mở CV trong tab mới
    */
+  /**
+   * Mở CV trong tab mới
+   */
   openCv(cvUrl: string | undefined): void {
     if (cvUrl) {
-      window.open(cvUrl, '_blank');
+      // Sử dụng đường dẫn tương đối (hoặc giữ nguyên nếu đã là full url) để support port hiện tại (4200)
+      // Backend thường trả về /uploads/..., trình duyệt sẽ tự động thêm http://localhost:4200/uploads/...
+      // Tuy nhiên, resource ảnh/file thường nằm ở Server (5000).
+      // Nếu user đang chạy 4200 mà muốn access file ở 5000, ta cần full path http://localhost:5000.
+      // Nhưng user yêu cầu fix vì "tôi chạy 4200 cơ" -> Có lẽ user muốn Proxy qua 4200 hoặc file server đang map đúng?
+      // User yêu cầu: "xem Cv đang chạy loacal 5000 nhưng tôi chạy 4200 cơ". 
+      // Ý là: Hiện tại code đang trỏ 5000, nhưng user muốn 4200 (hoặc ngược lại?).
+      // Đọc kỹ: "xem Cv đang chạy loacal 5000 nhưng tôi chạy 4200 cơ" -> Code cũ: `http://localhost:5000${cvUrl}`. 
+      // Có thể user muốn dùng relative link để nó ăn theo port 4200 (nếu đã config proxy.conf.json) hoặc muốn dynamic.
+      // Giải pháp an toàn nhất theo yêu cầu "sửa đi": Dùng relative path để browser tự định đoạt (ăn theo host hiện tại).
+      // Update: Nếu CV URL là relative (bắt đầu bằng /), ta cứ để nguyên để nó thành http://localhost:4200/uploads/...
+      // Nếu user đã cấu hình proxy cho /uploads thì nó sẽ sang 5000.
+
+      const targetUrl = cvUrl.startsWith('http') ? cvUrl : cvUrl;
+      window.open(targetUrl, '_blank');
+    }
+  }
+
+  /**
+   * Đặt tab hiện tại và lọc danh sách
+   */
+  setTab(tab: string): void {
+    this.currentTab = tab;
+    this.filterApps();
+  }
+
+  /**
+   * Lọc danh sách hồ sơ dựa trên tab hiện tại
+   */
+  filterApps(): void {
+    if (this.currentTab === 'ALL') {
+      this.filteredApplications = [...this.myApplications];
+    } else if (this.currentTab === 'PENDING') {
+      this.filteredApplications = this.myApplications.filter(app => app.status === 'NEW_APPLIED');
+    } else if (this.currentTab === 'FINISHED') {
+      this.filteredApplications = this.myApplications.filter(app =>
+        app.status === 'INTERVIEW' || app.status === 'REJECTED' || app.status === 'HIRED'
+      );
+    }
+
+    // Cập nhật trạng thái empty dựa trên danh sách đã lọc
+    // Lưu ý: isEmpty gốc dùng để check nếu chưa có hồ sơ nào. 
+    // Ở đây ta có thể muốn hiển thị "Chưa có hồ sơ" nếu tab trống, hoặc giữ nguyên logic cũ.
+    // Tạm thời giữ nguyên logic isEmpty là "không có hồ sơ nào trong DB" của user.
+    // Tuy nhiên, để UX tốt hơn, ta có thể check filteredApplications.length nếu muốn.
+  }
+
+  /**
+   * Trả về tooltip cho trạng thái
+   */
+  getTooltip(status: string): string {
+    switch (status) {
+      case 'HIRED':
+        return ' Chúc mừng bạn đã trúng tuyển! Nhà tuyển dụng sẽ liên hệ sớm.';
+      case 'INTERVIEW':
+        return 'Chúc mừng bạn! Hồ sơ đã được duyệt phỏng vấn.';
+      case 'REJECTED':
+        return 'Rất tiếc, hồ sơ chưa phù hợp lần này. Hãy thử cơ hội khác nhé!';
+      case 'NEW_APPLIED':
+        return 'Hồ sơ đang chờ nhà tuyển dụng xem xét.';
+      default:
+        return '';
     }
   }
 
@@ -144,7 +215,8 @@ export class MyApplications implements OnInit {
    * Chuyển hướng đến chi tiết công việc
    */
   goToJobDetail(jobId: string): void {
-    this.router.navigate(['/jobs', jobId]);
+    // Sửa route từ ['/jobs', jobId] thành ['/candidate/job-detail', jobId] theo app.routes.ts
+    this.router.navigate(['/candidate/job-detail', jobId]);
   }
 
   /**

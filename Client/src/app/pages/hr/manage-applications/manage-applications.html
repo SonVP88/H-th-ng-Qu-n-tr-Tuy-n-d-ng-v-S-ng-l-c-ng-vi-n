@@ -103,19 +103,42 @@
                         <!-- Actions -->
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div class="flex items-center gap-2">
-                                <button *ngIf="app.status === 'ACTIVE'"
-                                    (click)="updateStatus(app.applicationId, 'INTERVIEW')"
-                                    class="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-xs font-semibold">
-                                    Phỏng vấn
-                                </button>
-                                <button *ngIf="app.status === 'ACTIVE'"
-                                    (click)="updateStatus(app.applicationId, 'REJECTED')"
-                                    class="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-xs font-semibold">
-                                    Từ chối
-                                </button>
-                                <span *ngIf="app.status !== 'ACTIVE'" class="text-gray-400 text-xs">
-                                    {{ app.status === 'REJECTED' ? 'Đã xử lý' : 'Đang xử lý' }}
-                                </span>
+                                <!-- Trường hợp 1: NEW_APPLIED hoặc ACTIVE -->
+                                <ng-container *ngIf="app.status === 'NEW_APPLIED' || app.status === 'ACTIVE'">
+                                    <button (click)="updateStatus(app.applicationId, 'INTERVIEW')"
+                                        class="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-semibold flex items-center gap-1">
+                                        <span class="material-symbols-outlined" style="font-size: 14px;">event</span>
+                                        Mời Phỏng vấn
+                                    </button>
+                                    <button (click)="updateStatus(app.applicationId, 'REJECTED')"
+                                        class="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-xs font-semibold flex items-center gap-1">
+                                        <span class="material-symbols-outlined" style="font-size: 14px;">close</span>
+                                        Loại hồ sơ
+                                    </button>
+                                </ng-container>
+
+                                <!-- Trường hợp 2: INTERVIEW (đã mời phỏng vấn, chờ kết quả) -->
+                                <ng-container *ngIf="app.status === 'INTERVIEW'">
+                                    <button (click)="updateStatus(app.applicationId, 'HIRED')"
+                                        class="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-xs font-semibold flex items-center gap-1">
+                                        <span class="material-symbols-outlined"
+                                            style="font-size: 14px;">check_circle</span>
+                                        ✅ Duyệt (Pass)
+                                    </button>
+                                    <button (click)="updateStatus(app.applicationId, 'REJECTED')"
+                                        class="px-3 py-1.5 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-xs font-semibold flex items-center gap-1">
+                                        <span class="material-symbols-outlined" style="font-size: 14px;">cancel</span>
+                                        ❌ Từ chối (Fail)
+                                    </button>
+                                </ng-container>
+
+                                <!-- Trường hợp 3: HIRED hoặc REJECTED (đã hoàn tất) -->
+                                <ng-container *ngIf="app.status === 'HIRED' || app.status === 'REJECTED'">
+                                    <span class="text-gray-500 text-xs italic flex items-center gap-1">
+                                        <span class="material-symbols-outlined" style="font-size: 14px;">check</span>
+                                        Đã hoàn tất
+                                    </span>
+                                </ng-container>
                             </div>
                         </td>
                     </tr>
@@ -147,6 +170,242 @@
             <div>
                 <h3 class="text-lg font-semibold text-gray-900 mb-1">Chưa có hồ sơ nào</h3>
                 <p class="text-gray-500 text-sm">Chưa có ứng viên nào nộp hồ sơ cho vị trí này</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Lên Lịch Phỏng Vấn -->
+    <div *ngIf="showInterviewModal"
+        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                <h2 class="text-xl font-bold text-gray-900 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-blue-600">calendar_month</span>
+                    Lên Lịch Phỏng Vấn
+                </h2>
+                <button (click)="closeInterviewModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-6 space-y-6">
+                <!-- Thông tin ứng viên -->
+                <div class="bg-blue-50 rounded-lg p-4 flex items-center gap-4">
+                    <div class="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
+                        <span class="text-blue-700 font-bold text-lg">{{
+                            selectedApplication?.candidateName?.charAt(0)?.toUpperCase() }}</span>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-gray-900">{{ selectedApplication?.candidateName }}</p>
+                        <p class="text-sm text-gray-600">{{ selectedApplication?.email }}</p>
+                    </div>
+                </div>
+
+                <!-- Form nhập thông tin phỏng vấn -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Ngày phỏng vấn -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Ngày phỏng vấn *</label>
+                        <input type="date" [(ngModel)]="interviewForm.date" (ngModelChange)="updateEmailPreview()"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+
+                    <!-- Giờ phỏng vấn -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Giờ phỏng vấn *</label>
+                        <input type="time" [(ngModel)]="interviewForm.time" (ngModelChange)="updateEmailPreview()"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+
+                    <!-- Hình thức -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Hình thức *</label>
+                        <select [(ngModel)]="interviewForm.type" (ngModelChange)="updateEmailPreview()"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
+                            <option value="ONLINE">Online (Video Call)</option>
+                            <option value="OFFLINE">Offline (Trực tiếp)</option>
+                        </select>
+                    </div>
+
+                    <!-- Link/Địa điểm -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            {{ interviewForm.type === 'ONLINE' ? 'Link Meeting *' : 'Địa điểm *' }}
+                        </label>
+                        <input type="text" [(ngModel)]="interviewForm.location" (ngModelChange)="updateEmailPreview()"
+                            [placeholder]="interviewForm.type === 'ONLINE' ? 'VD: https://meet.google.com/xxx' : 'VD: 123 Đường ABC, Quận 1, TP.HCM'"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+
+                <!-- Khu vực Email Preview -->
+                <div class="border border-gray-200 rounded-lg overflow-hidden">
+                    <!-- Header Email Preview -->
+                    <div class="bg-gray-50 px-4 py-3 flex items-center justify-between border-b border-gray-200">
+                        <div class="flex items-center gap-2">
+                            <span class="material-symbols-outlined text-gray-600">mail</span>
+                            <span class="font-medium text-gray-700">Soạn thảo Email Preview</span>
+                        </div>
+                        <button (click)="generateAIOpening()" [disabled]="isGeneratingAI"
+                            class="px-4 py-2 bg-gradient-to-r from-yellow-400 to-amber-500 text-white rounded-lg hover:from-yellow-500 hover:to-amber-600 transition-all font-semibold text-sm flex items-center gap-2 shadow-md disabled:opacity-50 disabled:cursor-not-allowed">
+                            <span *ngIf="!isGeneratingAI">✨</span>
+                            <span *ngIf="isGeneratingAI" class="animate-spin">⏳</span>
+                            {{ isGeneratingAI ? 'Đang tạo...' : 'AI Personalize' }}
+                        </button>
+                    </div>
+
+                    <!-- Textarea Email -->
+                    <div class="p-4">
+                        <textarea [(ngModel)]="emailPreviewContent" rows="10"
+                            placeholder="Nội dung email sẽ được hiển thị ở đây..."
+                            class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none font-mono text-sm leading-relaxed"></textarea>
+                        <p class="text-xs text-gray-500 mt-2">
+                            💡 Bạn có thể chỉnh sửa nội dung email trước khi gửi. Bấm "✨ AI Personalize" để tạo đoạn mở
+                            đầu cá nhân hóa.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50">
+                <button (click)="closeInterviewModal()"
+                    class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-medium">
+                    Hủy
+                </button>
+                <button (click)="sendInterviewInvitation()" [disabled]="isSendingEmail || !isFormValid()"
+                    class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <span *ngIf="!isSendingEmail" class="material-symbols-outlined" style="font-size: 18px;">send</span>
+                    <span *ngIf="isSendingEmail" class="animate-spin">⏳</span>
+                    {{ isSendingEmail ? 'Đang gửi...' : 'Gửi lời mời' }}
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Từ Chối Hồ Sơ -->
+    <div *ngIf="showRejectModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                <h2 class="text-xl font-bold text-gray-900 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-red-500">cancel</span>
+                    Từ Chối Hồ Sơ
+                </h2>
+                <button (click)="closeRejectModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-6 space-y-6">
+                <!-- Thông tin ứng viên -->
+                <div class="bg-red-50 rounded-lg p-4 flex items-center gap-4">
+                    <div class="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center">
+                        <span class="text-red-700 font-bold text-lg">{{
+                            rejectApplication?.candidateName?.charAt(0)?.toUpperCase() }}</span>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-gray-900">{{ rejectApplication?.candidateName }}</p>
+                        <p class="text-sm text-gray-600">{{ rejectApplication?.email }}</p>
+                    </div>
+                </div>
+
+                <!-- Bước 1: Input lý do từ chối -->
+                <div *ngIf="rejectStep === 1" class="space-y-4">
+                    <h3 class="font-semibold text-gray-800 flex items-center gap-2">
+                        <span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-sm">Bước 1</span>
+                        Chọn lý do từ chối
+                    </h3>
+
+                    <!-- Checkboxes -->
+                    <div class="space-y-3">
+                        <label
+                            class="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                            <input type="checkbox" [(ngModel)]="rejectReasons.skill"
+                                class="w-5 h-5 text-red-600 rounded focus:ring-red-500">
+                            <span class="text-gray-700">Chuyên môn chưa đạt</span>
+                        </label>
+
+                        <label
+                            class="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                            <input type="checkbox" [(ngModel)]="rejectReasons.salary"
+                                class="w-5 h-5 text-red-600 rounded focus:ring-red-500">
+                            <span class="text-gray-700">Mức lương không phù hợp</span>
+                        </label>
+
+                        <label
+                            class="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                            <input type="checkbox" [(ngModel)]="rejectReasons.culture"
+                                class="w-5 h-5 text-red-600 rounded focus:ring-red-500">
+                            <span class="text-gray-700">Văn hóa không phù hợp</span>
+                        </label>
+                    </div>
+
+                    <!-- Ghi chú thêm -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Ghi chú thêm cho AI</label>
+                        <input type="text" [(ngModel)]="rejectNote"
+                            placeholder="VD: Nhẹ nhàng thôi, động viên họ lần sau..."
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                    </div>
+
+                    <!-- Nút Tạo Draft -->
+                    <button (click)="generateRejectionDraft()"
+                        [disabled]="isGeneratingRejectEmail || !hasSelectedReason()"
+                        class="w-full py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all font-semibold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <span *ngIf="!isGeneratingRejectEmail">🤖</span>
+                        <span *ngIf="isGeneratingRejectEmail" class="animate-spin">⏳</span>
+                        {{ isGeneratingRejectEmail ? 'AI đang soạn email...' : 'Tạo Email nháp (AI Draft)' }}
+                    </button>
+                </div>
+
+                <!-- Bước 2: Review & Edit Email -->
+                <div *ngIf="rejectStep === 2" class="space-y-4">
+                    <h3 class="font-semibold text-gray-800 flex items-center gap-2">
+                        <span class="bg-green-100 text-green-700 px-2 py-0.5 rounded text-sm">Bước 2</span>
+                        Xem lại & Chỉnh sửa Email
+                    </h3>
+
+                    <!-- Email Preview -->
+                    <div class="border border-gray-200 rounded-lg overflow-hidden">
+                        <div class="bg-gray-50 px-4 py-2 border-b border-gray-200 flex items-center gap-2">
+                            <span class="material-symbols-outlined text-gray-600">mail</span>
+                            <span class="text-sm font-medium text-gray-700">Nội dung Email Từ Chối</span>
+                        </div>
+                        <textarea [(ngModel)]="rejectEmailContent" rows="12"
+                            class="w-full px-4 py-3 border-0 focus:ring-0 resize-none font-mono text-sm leading-relaxed"></textarea>
+                    </div>
+
+                    <p class="text-xs text-gray-500">
+                        ✏️ Bạn có thể chỉnh sửa nội dung email trước khi gửi. Nội dung sẽ được gửi đến: <strong>{{
+                            rejectApplication?.email }}</strong>
+                    </p>
+
+                    <!-- Nút quay lại -->
+                    <button (click)="rejectStep = 1"
+                        class="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1">
+                        <span class="material-symbols-outlined" style="font-size: 16px;">arrow_back</span>
+                        Quay lại chọn lý do
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50">
+                <button (click)="closeRejectModal()"
+                    class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-medium">
+                    Hủy
+                </button>
+                <button *ngIf="rejectStep === 2" (click)="confirmReject()" [disabled]="isSendingRejectEmail"
+                    class="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <span *ngIf="!isSendingRejectEmail" class="material-symbols-outlined"
+                        style="font-size: 18px;">send</span>
+                    <span *ngIf="isSendingRejectEmail" class="animate-spin">⏳</span>
+                    {{ isSendingRejectEmail ? 'Đang gửi...' : 'Gửi Email Từ Chối' }}
+                </button>
             </div>
         </div>
     </div>

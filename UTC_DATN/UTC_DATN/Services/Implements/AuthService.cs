@@ -47,7 +47,7 @@ namespace UTC_DATN.Services.Implements
 
             // Tìm Role có Code là 'CANDIDATE'
             var candidateRole = await _context.Roles
-                .FirstOrDefaultAsync(r => r.Code == "Candidate");
+                .FirstOrDefaultAsync(r => r.Code == "CANDIDATE");
 
             if (candidateRole == null)
             {
