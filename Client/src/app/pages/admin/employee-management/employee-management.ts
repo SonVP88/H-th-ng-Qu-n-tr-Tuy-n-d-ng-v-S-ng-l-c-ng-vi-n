@@ -1,13 +1,13 @@
 import { Component, OnInit, inject, signal, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { EmployeeService, EmployeeDto, CreateEmployeeRequest } from '../../../services/employee';
 
 @Component({
   selector: 'app-employee-management',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule],
   templateUrl: './employee-management.html',
   styleUrl: './employee-management.scss',
 })
@@ -44,6 +44,12 @@ export class EmployeeManagement implements OnInit {
     return this.employees().slice(start, start + this.itemsPerPage);
   };
 
+  // Search & Filter
+  searchQuery = '';
+  showFilterPanel = false;
+  filterRole = '';
+  filterStatus = '';
+
   ngOnInit(): void {
     console.log('🔄 EmployeeManagement ngOnInit called');
     this.initForm();
@@ -69,7 +75,7 @@ export class EmployeeManagement implements OnInit {
     this.isLoading.set(true);
     this.errorMessage.set(null);
 
-    console.log('🔍 Calling API: GET /api/employee');
+    console.log('🔍 Calling API: GET /api/employees');
 
     this.employeeService.getEmployees().subscribe({
       next: (data) => {
@@ -400,5 +406,125 @@ export class EmployeeManagement implements OnInit {
     }
 
     return range;
+  }
+
+  // ==================== SEARCH & FILTER METHODS ====================
+
+  /**
+   * Compute filtered employees list
+   */
+  filteredEmployees(): EmployeeDto[] {
+    let filtered = [...this.employees()];
+
+    // Apply search query
+    if (this.searchQuery.trim()) {
+      const query = this.searchQuery.toLowerCase().trim();
+      filtered = filtered.filter(emp =>
+        emp.fullName.toLowerCase().includes(query) ||
+        emp.email.toLowerCase().includes(query) ||
+        (emp.phone && emp.phone.includes(query))
+      );
+    }
+
+    // Apply role filter
+    if (this.filterRole) {
+      filtered = filtered.filter(emp => emp.role === this.filterRole);
+    }
+
+    // Apply status filter
+    if (this.filterStatus) {
+      const isActive = this.filterStatus === 'active';
+      filtered = filtered.filter(emp => emp.isActive === isActive);
+    }
+
+    return filtered;
+  }
+
+  /**
+   * Toggle filter panel visibility
+   */
+  toggleFilterPanel(): void {
+    this.showFilterPanel = !this.showFilterPanel;
+  }
+
+  /**
+   * Triggered when search input changes
+   */
+  onSearchChange(): void {
+    this.cdr.detectChanges();
+  }
+
+  /**
+   * Apply filters
+   */
+  applyFilters(): void {
+    this.cdr.detectChanges();
+  }
+
+  /**
+   * Clear all filters and search
+   */
+  clearFilters(): void {
+    this.searchQuery = '';
+    this.filterRole = '';
+    this.filterStatus = '';
+    this.cdr.detectChanges();
+  }
+
+  /**
+   * Get count of active filters
+   */
+  getActiveFiltersCount(): number {
+    let count = 0;
+    if (this.filterRole) count++;
+    if (this.filterStatus) count++;
+    return count;
+  }
+
+  /**
+   * Export filtered employees to CSV
+   */
+  exportToExcel(): void {
+    const filtered = this.filteredEmployees();
+
+    if (filtered.length === 0) {
+      alert('Không có dữ liệu để xuất!');
+      return;
+    }
+
+    // Prepare CSV data
+    const headers = ['Họ tên', 'Email', 'Số điện thoại', 'Vai trò', 'Trạng thái', 'Ngày tạo'];
+    const rows = filtered.map(emp => [
+      emp.fullName,
+      `'${emp.email}`, // Force text format
+      emp.phone ? `'${emp.phone}` : '', // Force text format
+      emp.role,
+      emp.isActive ? 'Hoạt động' : 'Không hoạt động',
+      this.formatDate(emp.createdAt)
+    ]);
+
+    // Convert to CSV string with proper escaping
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => {
+        // Escape double quotes and wrap in quotes
+        const escaped = String(cell).replace(/"/g, '""');
+        return `"${escaped}"`;
+      }).join(','))
+    ].join('\n');
+
+    // Create Blob and download
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute('href', url);
+    link.setAttribute('download', `nhan-vien-${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    console.log(`✅ Exported ${filtered.length} employees to CSV`);
   }
 }

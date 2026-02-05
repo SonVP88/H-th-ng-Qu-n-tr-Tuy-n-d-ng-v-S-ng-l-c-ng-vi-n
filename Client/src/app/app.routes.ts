@@ -11,6 +11,7 @@ import { ManageApplications } from './pages/hr/manage-applications/manage-applic
 import { EmployeeManagement } from './pages/admin/employee-management/employee-management';
 import { ForbiddenComponent } from './pages/forbidden/forbidden.component';
 import { roleGuard } from './guards/role.guard';
+import { CandidateDetail } from './components/admin/candidate-detail/candidate-detail';
 
 export const routes: Routes = [
 
@@ -40,6 +41,24 @@ export const routes: Routes = [
       // Quản lý hồ sơ
       { path: 'manage-applications/:jobId', component: ManageApplications },
       { path: 'manage-applications', component: ManageApplications },
+
+      // Chi tiết ứng viên
+      { path: 'candidate-detail', component: CandidateDetail },
+
+      // Báo cáo Analytics
+      {
+        path: 'reports',
+        loadComponent: () => import('./components/admin/reports/reports').then(m => m.Reports),
+        data: { ssr: false }
+      },
+
+      // Lịch phỏng vấn cá nhân (INTERVIEWER, HR, ADMIN)
+      {
+        path: 'my-interviews',
+        loadComponent: () => import('./components/my-interviews/my-interviews').then(m => m.MyInterviews),
+        canActivate: [roleGuard],
+        data: { roles: ['INTERVIEWER', 'HR', 'ADMIN'] }
+      },
 
       // Quản lý nhân viên (Chỉ ADMIN)
       {

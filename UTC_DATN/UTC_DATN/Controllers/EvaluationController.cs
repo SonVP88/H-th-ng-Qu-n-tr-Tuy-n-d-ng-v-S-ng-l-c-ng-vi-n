@@ -66,6 +66,34 @@ public class EvaluationController : ControllerBase
     }
 
     /// <summary>
+    /// Lấy chi tiết đánh giá của một buổi phỏng vấn
+    /// </summary>
+    [HttpGet("{interviewId}")]
+    public async Task<IActionResult> GetEvaluationByInterviewId(Guid interviewId)
+    {
+        try
+        {
+            var evaluation = await _interviewService.GetEvaluationByInterviewIdAsync(interviewId);
+
+            if (evaluation == null)
+            {
+                return NotFound(new { success = false, message = "Chưa có đánh giá nào cho buổi phỏng vấn này" });
+            }
+
+            return Ok(new
+            {
+                success = true,
+                data = evaluation
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi lấy chi tiết đánh giá InterviewId: {InterviewId}", interviewId);
+            return StatusCode(500, new { success = false, message = "Có lỗi xảy ra khi lấy thông tin đánh giá" });
+        }
+    }
+
+    /// <summary>
     /// API AI Judge - Đánh giá câu trả lời bằng AI
     /// </summary>
     [HttpPost("ai-judge")]

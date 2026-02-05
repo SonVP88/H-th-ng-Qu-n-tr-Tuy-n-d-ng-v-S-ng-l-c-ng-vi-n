@@ -1,20 +1,29 @@
-import { Injectable } from '@angular/core';
+import { Injectable, PLATFORM_ID, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { jwtDecode } from 'jwt-decode';
+import { isPlatformBrowser } from '@angular/common';
 
 @Injectable({
     providedIn: 'root'
 })
 export class AuthService {
+    private platformId = inject(PLATFORM_ID);
+
     constructor(private router: Router) { }
 
     isAuthenticated(): boolean {
+        // ⚡ SSR Fix: Only access localStorage in browser
+        if (!isPlatformBrowser(this.platformId)) return false;
         if (typeof window === 'undefined') return false;
+
         const token = localStorage.getItem('authToken');
         return !!token;
     }
 
+
     getCurrentUser(): any {
+        // ⚡ SSR Fix: Only access localStorage in browser
+        if (!isPlatformBrowser(this.platformId)) return null;
         if (typeof window === 'undefined') return null;
 
         const token = localStorage.getItem('authToken');
@@ -40,15 +49,14 @@ export class AuthService {
     }
 
     logout(): void {
-        if (typeof window !== 'undefined') {
+        // ⚡ SSR Fix: Only access localStorage in browser
+        if (isPlatformBrowser(this.platformId) && typeof window !== 'undefined') {
             console.log('🚪 Đăng xuất - Xóa token khỏi localStorage');
             localStorage.removeItem('authToken');
 
             const remainingToken = localStorage.getItem('authToken');
             if (remainingToken) {
                 console.error('❌ Cảnh báo: Token vẫn còn trong localStorage!');
-            } else {
-                console.log('✅ Token đã được xóa thành công');
             }
         }
 
@@ -56,14 +64,19 @@ export class AuthService {
     }
 
     saveToken(token: string): boolean {
+        // ⚡ SSR Fix: Only access localStorage in browser
+        if (!isPlatformBrowser(this.platformId)) {
+            console.warn('⚠️ SSR: Cannot save token on server side');
+            return false;
+        }
         if (typeof window === 'undefined') return false;
 
         try {
             localStorage.setItem('authToken', token);
-            const saved = localStorage.getItem('authToken');
-            return saved === token;
+            console.log('✅ Token saved successfully');
+            return true;
         } catch (error) {
-            console.error('Lỗi lưu token:', error);
+            console.error('❌ Error saving token:', error);
             return false;
         }
     }

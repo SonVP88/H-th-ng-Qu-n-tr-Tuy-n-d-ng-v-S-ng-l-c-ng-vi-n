@@ -1,0 +1,12 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  font-family: 'Inter', sans-serif;
+  @apply bg-background-light dark:bg-background-dark text-[#0d121b] dark:text-white;
+}
+
+/* Custom class helper (nếu chưa có trong tailwind config) */
+.bg-primary-10 {
+  background-color: rgba(33, 98, 237, 0.1);
+}

@@ -29,7 +29,7 @@ export interface ApiResponse<T> {
   providedIn: 'root',
 })
 export class EmployeeService {
-  private apiUrl = '/api/employee';
+  private apiUrl = '/api/employees';
 
   constructor(private http: HttpClient) { }
 

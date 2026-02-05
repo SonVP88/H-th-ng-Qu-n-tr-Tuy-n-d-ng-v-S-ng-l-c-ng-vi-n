@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using UTC_DATN.DTOs.Application;
+using UTC_DATN.DTOs.Interview;
 using UTC_DATN.Services.Interfaces;
 
 namespace UTC_DATN.Controllers;
@@ -10,13 +11,16 @@ namespace UTC_DATN.Controllers;
 public class ApplicationController : ControllerBase
 {
     private readonly IApplicationService _applicationService;
+    private readonly IInterviewService _interviewService;
     private readonly ILogger<ApplicationController> _logger;
 
     public ApplicationController(
         IApplicationService applicationService,
+        IInterviewService interviewService,
         ILogger<ApplicationController> logger)
     {
         _applicationService = applicationService;
+        _interviewService = interviewService;
         _logger = logger;
     }
 
@@ -221,6 +225,84 @@ public class ApplicationController : ControllerBase
             {
                 success = false,
                 message = "Có lỗi xảy ra khi lấy danh sách hồ sơ."
+            });
+        }
+    }
+
+    /// <summary>
+    /// API lên lịch phỏng vấn cho một Application (Dành cho HR/Admin)
+    /// </summary>
+    [HttpPost("{applicationId}/schedule-interview")]
+    [Authorize(Roles = "HR, ADMIN")]
+    public async Task<IActionResult> ScheduleInterview(Guid applicationId, [FromBody] ScheduleInterviewDto dto)
+    {
+        try
+        {
+            // Override applicationId from route to DTO
+            dto.ApplicationId = applicationId;
+
+            // Validate ModelState
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage)
+                    .ToList();
+
+                _logger.LogWarning("Validation failed for schedule interview: {Errors}", string.Join(", ", errors));
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Dữ liệu không hợp lệ",
+                    errors = errors
+                });
+            }
+
+            // Lấy createdBy từ JWT claims
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var createdBy))
+            {
+                return Unauthorized(new { success = false, message = "Vui lòng đăng nhập để thực hiện hành động này." });
+            }
+
+            // Gọi service
+            var interviewId = await _interviewService.ScheduleInterviewAsync(dto, createdBy);
+
+            _logger.LogInformation("✅ Interview scheduled successfully with ID: {InterviewId} for ApplicationId: {ApplicationId}", 
+                interviewId, applicationId);
+
+            return Ok(new
+            {
+                success = true,
+                message = "Lên lịch phỏng vấn thành công",
+                data = new { interviewId }
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Invalid operation when scheduling interview");
+            return BadRequest(new
+            {
+                success = false,
+                message = ex.Message
+            });
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Argument validation error when scheduling interview");
+            return BadRequest(new
+            {
+                success = false,
+                message = ex.Message
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error scheduling interview for ApplicationId: {ApplicationId}", applicationId);
+            return StatusCode(500, new
+            {
+                success = false,
+                message = "Có lỗi xảy ra khi lên lịch phỏng vấn."
             });
         }
     }

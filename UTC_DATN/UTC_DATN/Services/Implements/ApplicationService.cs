@@ -365,64 +365,70 @@ public class ApplicationService : IApplicationService
     }
     public async Task<List<ApplicationDto>> GetApplicationsByJobIdAsync(Guid jobId)
     {
-        // 1. Query Data
+        // OPTIMIZED: Use projection instead of Include to load only needed fields
         var applications = await _context.Applications
             .AsNoTracking()
-            .Include(a => a.Candidate)
-            .Include(a => a.Job) // Thêm để lấy JobTitle
-            .Include(a => a.ResumeDocument)
-                .ThenInclude(rd => rd.File)
-            .Include(a => a.ApplicationAiScores)
             .Where(a => a.JobId == jobId)
             .Select(a => new
             {
-                Application = a,
-                // Lấy điểm số AI mới nhất
-                LatestScore = a.ApplicationAiScores.OrderByDescending(s => s.CreatedAt).FirstOrDefault()
+                ApplicationId = a.ApplicationId,
+                CandidateId = a.CandidateId,
+                CandidateName = a.Candidate.FullName ?? "Unknown",
+                Email = a.Candidate.Email ?? "",
+                Phone = a.Candidate.Phone ?? "",
+                AppliedAt = a.AppliedAt,
+                Status = a.Status,
+                CvUrl = a.ResumeDocument != null && a.ResumeDocument.File != null 
+                    ? a.ResumeDocument.File.Url 
+                    : "",
+                JobTitle = a.Job.Title,
+                // Get latest AI score (avoid loading all scores)
+                LatestScore = a.ApplicationAiScores
+                    .OrderByDescending(s => s.CreatedAt)
+                    .Select(s => new { s.MatchingScore, s.MatchedSkillsJson })
+                    .FirstOrDefault()
             })
+            .OrderByDescending(a => a.LatestScore != null ? a.LatestScore.MatchingScore : -1)
+            .ThenByDescending(a => a.AppliedAt)
             .ToListAsync();
 
-        // 2. Sort & Map to DTO in memory
-        var result = applications
-            .OrderByDescending(x => x.LatestScore != null ? x.LatestScore.MatchingScore : -1) // Điểm cao lên đầu
-            .ThenByDescending(x => x.Application.AppliedAt) // Mới nhất lên đầu
-            .Select(x => {
-                string explanation = null;
-                if (x.LatestScore != null && !string.IsNullOrEmpty(x.LatestScore.MatchedSkillsJson))
+        // Map to DTO
+        var result = applications.Select(a =>
+        {
+            string explanation = null;
+            if (a.LatestScore != null && !string.IsNullOrEmpty(a.LatestScore.MatchedSkillsJson))
+            {
+                try
                 {
-                    try
+                    using (var doc = System.Text.Json.JsonDocument.Parse(a.LatestScore.MatchedSkillsJson))
                     {
-                        // Parse JSON để lấy explanation
-                        using (var doc = System.Text.Json.JsonDocument.Parse(x.LatestScore.MatchedSkillsJson))
+                        if (doc.RootElement.TryGetProperty("explanation", out var expElement))
                         {
-                            if (doc.RootElement.TryGetProperty("explanation", out var expElement))
-                            {
-                                explanation = expElement.GetString();
-                            }
+                            explanation = expElement.GetString();
                         }
                     }
-                    catch 
-                    {
-                        // Ignore JSON parse error
-                    }
                 }
-
-                return new ApplicationDto
+                catch
                 {
-                    ApplicationId = x.Application.ApplicationId,
-                    CandidateId = x.Application.CandidateId, // Thêm để gọi API generate-opening
-                    CandidateName = x.Application.Candidate?.FullName ?? "Unknown",
-                    Email = x.Application.Candidate?.Email ?? "",
-                    Phone = x.Application.Candidate?.Phone ?? "",
-                    AppliedAt = x.Application.AppliedAt,
-                    Status = x.Application.Status,
-                    CvUrl = x.Application.ResumeDocument?.File?.Url ?? "",
-                    JobTitle = x.Application.Job?.Title, // Thêm để hiển thị trong email
-                    MatchScore = (int?)x.LatestScore?.MatchingScore,
-                    AiExplanation = explanation
-                };
-            })
-            .ToList();
+                    // Ignore JSON parse error
+                }
+            }
+
+            return new ApplicationDto
+            {
+                ApplicationId = a.ApplicationId,
+                CandidateId = a.CandidateId,
+                CandidateName = a.CandidateName,
+                Email = a.Email,
+                Phone = a.Phone,
+                AppliedAt = a.AppliedAt,
+                Status = a.Status,
+                CvUrl = a.CvUrl,
+                JobTitle = a.JobTitle,
+                MatchScore = (int?)a.LatestScore?.MatchingScore,
+                AiExplanation = explanation
+            };
+        }).ToList();
 
         return result;
     }

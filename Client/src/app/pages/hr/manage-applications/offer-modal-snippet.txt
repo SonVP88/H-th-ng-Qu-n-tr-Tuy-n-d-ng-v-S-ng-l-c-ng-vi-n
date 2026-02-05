@@ -1,0 +1,9 @@
+
+
+<!-- ==================== OFFER MODAL ==================== -->
+<app-offer-modal
+    [isOpen]="isOfferModalOpen"
+    [candidate]="selectedCandidateForOffer"
+    (close)="isOfferModalOpen = false"
+    (offerSent)="handleOfferSent($event)">
+</app-offer-modal>

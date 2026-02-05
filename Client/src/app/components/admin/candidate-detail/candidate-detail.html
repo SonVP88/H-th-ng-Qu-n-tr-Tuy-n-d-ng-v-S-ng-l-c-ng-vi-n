@@ -1,0 +1,217 @@
+<div class="w-full max-w-[1280px] mx-auto">
+  <div class="flex mb-6">
+    <button (click)="goBack()"
+      class="group flex items-center gap-2 text-gray-500 hover:text-primary transition-colors text-sm font-semibold">
+      <span
+        class="material-symbols-outlined text-[20px] group-hover:-translate-x-1 transition-transform">arrow_back</span>
+      <span>Quay lại danh sách</span>
+    </button>
+  </div>
+
+  <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 mb-8">
+    <div class="flex flex-col md:flex-row gap-6 justify-between items-start md:items-center">
+      <div
+        class="flex flex-col sm:flex-row gap-5 items-center sm:items-start text-center sm:text-left w-full md:w-auto">
+        <div
+          class="bg-center bg-no-repeat bg-cover rounded-full size-24 border-4 border-gray-50 dark:border-gray-700 shadow-sm shrink-0"
+          data-alt="Portrait of candidate"
+          style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDcXxEKQxeqhlfXEimJFC_fjv6vkmGdlgE-fP7Uf_RswXwXgUFTgZsgqy5W76zNBn42LaKj15van7nOsCEDJfAAf4Lq5p6L4i10j0-667k7P7E0eKQ_3EPkMYKAnWD6WCgVFCkfFRR1jJKuqZY6-K2nu8NuynzjWCK7Pou8RRoBdtsz9zO8mKCXgmHHeOGwjsh76EaogPX9F7bVBDwdOS3pmT4JWgnBchwucz34U7VwcNL39HzowOjnzOPLAGJ9cdD4hdrd19ubeDuE");'>
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <div class="flex flex-wrap items-center justify-center sm:justify-start gap-3">
+            <h1 class="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">{{ candidate.name }}</h1>
+            <span
+              class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100">
+              <span class="w-1.5 h-1.5 bg-yellow-500 rounded-full mr-1.5"></span>
+              {{ candidate.status }}
+            </span>
+          </div>
+          <p class="text-[#4c649a] dark:text-gray-400 font-medium text-lg">{{ candidate.position }}</p>
+          <div
+            class="flex items-center justify-center sm:justify-start gap-4 text-sm text-gray-500 dark:text-gray-400 mt-1">
+            <span class="flex items-center gap-1">
+              <span class="material-symbols-outlined text-[16px]">location_on</span>
+              {{ candidate.location }}
+            </span>
+            <span class="flex items-center gap-1">
+              <span class="material-symbols-outlined text-[16px]">schedule</span>
+              Ứng tuyển: {{ candidate.appliedDate }}
+            </span>
+          </div>
+        </div>
+      </div>
+      <div class="flex flex-wrap justify-center w-full md:w-auto gap-3">
+        <button (click)="rejectCandidate()"
+          class="flex items-center justify-center gap-2 px-4 h-10 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 font-semibold text-sm transition-colors border border-transparent">
+          <span class="material-symbols-outlined text-[18px]">block</span>
+          <span>Từ chối</span>
+        </button>
+        <button (click)="editProfile()"
+          class="flex items-center justify-center gap-2 px-4 h-10 rounded-lg bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 font-semibold text-sm transition-colors dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-600">
+          <span class="material-symbols-outlined text-[18px]">edit</span>
+          <span>Sửa hồ sơ</span>
+        </button>
+        <!-- Nút Gửi Offer - Hiển thị khi status = Pending_Offer -->
+        <button *ngIf="candidate?.status === 'Pending_Offer'" (click)="onOpenOffer()"
+          class="flex items-center justify-center gap-2 px-5 h-10 rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold text-sm shadow-lg shadow-blue-600/30 transition-all">
+          <span class="material-symbols-outlined text-[18px]">mail</span>
+          <span>📧 Gửi Offer</span>
+        </button>
+        <button (click)="sendEmail()"
+          class="flex items-center justify-center gap-2 px-5 h-10 rounded-lg bg-primary hover:bg-blue-700 text-white font-semibold text-sm shadow-sm transition-colors">
+          <span class="material-symbols-outlined text-[18px]">email</span>
+          <span>Gửi Email</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div class="space-y-6 lg:col-span-1">
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5">
+        <h3 class="text-lg font-bold mb-5 flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary">contact_page</span>
+          Thông tin liên hệ
+        </h3>
+        <div class="space-y-5">
+          <div class="flex items-start gap-3">
+            <div class="size-8 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
+              <span class="material-symbols-outlined text-primary text-sm">email</span>
+            </div>
+            <div class="flex flex-col">
+              <span class="text-xs text-gray-500 font-medium uppercase tracking-wide">Email</span>
+              <a class="text-sm font-medium text-gray-900 dark:text-gray-100 hover:text-primary transition-colors break-all"
+                [href]="'mailto:' + candidate.email">
+                {{ candidate.email }}
+              </a>
+            </div>
+          </div>
+          <div class="flex items-start gap-3">
+            <div class="size-8 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
+              <span class="material-symbols-outlined text-primary text-sm">call</span>
+            </div>
+            <div class="flex flex-col">
+              <span class="text-xs text-gray-500 font-medium uppercase tracking-wide">Số điện thoại</span>
+              <a class="text-sm font-medium text-gray-900 dark:text-gray-100 hover:text-primary transition-colors"
+                [href]="'tel:' + candidate.phone">
+                {{ candidate.phone }}
+              </a>
+            </div>
+          </div>
+          <div class="flex items-start gap-3">
+            <div class="size-8 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
+              <span class="material-symbols-outlined text-primary text-sm">public</span>
+            </div>
+            <div class="flex flex-col">
+              <span class="text-xs text-gray-500 font-medium uppercase tracking-wide">Mạng xã hội</span>
+              <a class="text-sm font-medium text-primary hover:underline flex items-center gap-1" href="#">
+                LinkedIn Profile
+                <span class="material-symbols-outlined text-[14px]">open_in_new</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5">
+        <h3 class="text-lg font-bold mb-5 flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary">psychology</span>
+          Kỹ năng
+        </h3>
+        <div class="flex flex-wrap gap-2">
+          <span *ngFor="let skill of candidate.skills"
+            class="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full text-sm font-medium">
+            {{ skill }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="space-y-6 lg:col-span-2">
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+        <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary">person</span>
+          Giới thiệu chung
+        </h3>
+        <p class="text-gray-600 dark:text-gray-300 leading-relaxed text-sm">
+          {{ candidate.summary }}
+        </p>
+      </div>
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+        <h3 class="text-lg font-bold mb-6 flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary">work_history</span>
+          Kinh nghiệm làm việc
+        </h3>
+        <div class="ml-2">
+          <div *ngFor="let exp of candidate.experience; let last = last"
+            class="relative pl-8 pb-8 border-l-2 border-gray-200 dark:border-gray-700" [class.last:pb-0]="last"
+            [class.border-transparent]="last">
+            <div class="absolute -left-[9px] top-1 bg-white dark:bg-gray-800 border-2 rounded-full w-4 h-4"
+              [ngClass]="last ? 'border-gray-300 dark:border-gray-500' : 'border-primary'"></div>
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-1">
+              <h4 class="font-bold text-gray-900 dark:text-white">{{ exp.role }}</h4>
+              <span class="text-xs font-semibold text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">{{
+                exp.period }}</span>
+            </div>
+            <p class="text-primary font-medium text-sm mb-2">{{ exp.company }}</p>
+            <p class="text-gray-600 dark:text-gray-300 text-sm">
+              {{ exp.description }}
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+        <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary">school</span>
+          Học vấn
+        </h3>
+        <div class="space-y-4">
+          <div *ngFor="let edu of candidate.education; let last = last"
+            class="flex items-start justify-between border-b border-gray-100 dark:border-gray-700 pb-4"
+            [class.last:border-0]="last" [class.last:pb-0]="last">
+            <div>
+              <h4 class="font-bold text-gray-900 dark:text-white text-sm">{{ edu.school }}</h4>
+              <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">{{ edu.degree }}</p>
+            </div>
+            <span class="text-xs text-gray-500">{{ edu.year }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+        <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary">attachment</span>
+          File đính kèm
+        </h3>
+        <div class="flex flex-col gap-3">
+          <div *ngFor="let file of candidate.files"
+            class="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+            <div class="flex items-center gap-3 overflow-hidden">
+              <div
+                class="size-10 bg-red-100 dark:bg-red-900/30 rounded flex items-center justify-center text-red-600 shrink-0">
+                <span class="material-symbols-outlined">picture_as_pdf</span>
+              </div>
+              <div class="flex flex-col overflow-hidden">
+                <span class="font-medium text-sm text-gray-900 dark:text-gray-100 truncate">{{ file.name }}</span>
+                <span class="text-xs text-gray-500">{{ file.size }} • {{ file.date }}</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              <button class="p-2 text-gray-500 hover:text-primary hover:bg-white rounded-lg transition-all"
+                title="Xem trước">
+                <span class="material-symbols-outlined text-[20px]">visibility</span>
+              </button>
+              <button class="p-2 text-gray-500 hover:text-primary hover:bg-white rounded-lg transition-all"
+                title="Tải xuống">
+                <span class="material-symbols-outlined text-[20px]">download</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Offer Modal -->
+<app-offer-modal [isOpen]="showOfferModal" [candidate]="candidate" (close)="onOfferClosed()"
+  (offerSent)="onOfferSent($event)">
+</app-offer-modal>

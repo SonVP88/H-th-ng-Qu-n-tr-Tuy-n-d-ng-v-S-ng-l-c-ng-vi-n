@@ -641,7 +641,7 @@ public partial class UTC_DATNContext : DbContext
 
             entity.Property(e => e.RoleInPanel).HasMaxLength(50);
 
-            entity.HasOne(d => d.Interview).WithMany(p => p.Interviewers)
+            entity.HasOne(d => d.Interview).WithMany(p => p.Interviewer)
                 .HasForeignKey(d => d.InterviewId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Interviewers_Interview");

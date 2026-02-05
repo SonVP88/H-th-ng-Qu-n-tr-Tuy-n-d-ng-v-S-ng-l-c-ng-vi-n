@@ -6,8 +6,7 @@ using UTC_DATN.Services.Interfaces;
 namespace UTC_DATN.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
-    [Authorize(Roles = "ADMIN")] // Chỉ ADMIN mới được access
+    [Route("api/employees")]
     public class EmployeeController : ControllerBase
     {
         private readonly IEmployeeService _employeeService;
@@ -21,6 +20,7 @@ namespace UTC_DATN.Controllers
         /// Lấy danh sách nhân viên (HR và INTERVIEWER)
         /// </summary>
         [HttpGet]
+        [Authorize(Roles = "ADMIN")]
         public async Task<IActionResult> GetEmployees()
         {
             var employees = await _employeeService.GetEmployeesAsync();
@@ -28,9 +28,55 @@ namespace UTC_DATN.Controllers
         }
 
         /// <summary>
+    /// Lấy danh sách Interviewer (dùng cho dropdown lên lịch phỏng vấn)
+    /// Bao gồm: ADMIN, HR_MANAGER, INTERVIEWER
+    /// Cho phép HR và ADMIN truy cập
+    /// </summary>
+    [HttpGet("interviewers")]
+    [Authorize(Roles = "HR, ADMIN")]
+    public async Task<IActionResult> GetInterviewers()
+    {
+        var employees = await _employeeService.GetEmployeesAsync();
+        
+        // Filter lấy INTERVIEWER, HR, hoặc ADMIN
+        var validRoles = new[] { "INTERVIEWER", "HR", "ADMIN" };
+        
+        var interviewers = employees
+            .Where(e => validRoles.Contains(e.Role) && e.IsActive)
+            .Select(e => new
+            {
+                id = e.UserId,
+                fullName = e.FullName,
+                email = e.Email,
+                roleName = e.Role,
+                // Helper field for sorting
+                rolePriority = e.Role switch
+                {
+                    "ADMIN" => 1,
+                    "HR" => 2,
+                    "INTERVIEWER" => 3,
+                    _ => 999
+                }
+            })
+            .OrderBy(e => e.rolePriority)  // Ưu tiên theo role: Admin -> HR -> Interviewer
+            .ThenBy(e => e.fullName)        // Sau đó sắp xếp theo tên
+            .Select(e => new
+            {
+                e.id,
+                e.fullName,
+                e.email,
+                e.roleName
+            })
+            .ToList();
+
+        return Ok(interviewers);
+    }
+
+        /// <summary>
         /// Tạo nhân viên mới (HR hoặc INTERVIEWER)
         /// </summary>
         [HttpPost]
+        [Authorize(Roles = "ADMIN")]
         public async Task<IActionResult> CreateEmployee([FromBody] CreateEmployeeRequest request)
         {
             if (!ModelState.IsValid)
@@ -49,6 +95,7 @@ namespace UTC_DATN.Controllers
         }
 
         [HttpPut("{id}/deactivate")]
+        [Authorize(Roles = "ADMIN")]
         public async Task<IActionResult> DeactivateEmployee(Guid id)
         {
             var result = await _employeeService.DeactivateEmployeeAsync(id);
@@ -62,6 +109,7 @@ namespace UTC_DATN.Controllers
         }
 
         [HttpPut("{id}/reactivate")]
+        [Authorize(Roles = "ADMIN")]
         public async Task<IActionResult> ReactivateEmployee(Guid id)
         {
             var result = await _employeeService.ReactivateEmployeeAsync(id);
@@ -75,6 +123,7 @@ namespace UTC_DATN.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "ADMIN")]
         public async Task<IActionResult> UpdateEmployee(Guid id, [FromBody] CreateEmployeeRequest request)
         {
             var employee = await _employeeService.UpdateEmployeeAsync(id, request);

@@ -2,6 +2,7 @@
 #nullable disable
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace UTC_DATN.Entities;
 
@@ -21,19 +22,24 @@ public partial class Interview
 
     public string Location { get; set; }
 
-    public string Status { get; set; }
+    public string Status { get; set; } = null!; // Modified
 
     public Guid? CreatedBy { get; set; }
 
     public DateTime CreatedAt { get; set; }
 
-    public virtual Application Application { get; set; }
+    public Guid? InterviewerId { get; set; } // Reordered
 
-    public virtual User CreatedByNavigation { get; set; }
+    public virtual Application Application { get; set; } = null!; // Modified
+
+    public virtual User? CreatedByNavigation { get; set; } // Modified
 
     public virtual ICollection<InterviewFeedback> InterviewFeedbacks { get; set; } = new List<InterviewFeedback>();
 
     public virtual ICollection<InterviewScorecard> InterviewScorecards { get; set; } = new List<InterviewScorecard>();
 
-    public virtual ICollection<Interviewer> Interviewers { get; set; } = new List<Interviewer>();
+    public virtual ICollection<Interviewer> Interviewer { get; set; } = new List<Interviewer>(); // Renamed from Interviewers
+
+    [ForeignKey("InterviewerId")] // Added ForeignKey attribute
+    public virtual User? InterviewerUser { get; set; } // Added
 }

@@ -1,31 +1,31 @@
 <div
   class="bg-white dark:bg-[#1a202c] rounded-xl shadow-lg border border-gray-100 dark:border-gray-800 overflow-hidden">
   <div class="border-b border-gray-100 dark:border-gray-800 p-8 pb-6">
-    <h2 class="text-2xl font-bold text-[#0d121b] dark:text-white mb-2">Create Job Posting</h2>
-    <p class="text-[#4c669a] dark:text-gray-400">Fill in the details below to publish a new open position to the
-      careers portal.</p>
+    <h2 class="text-2xl font-bold text-[#0d121b] dark:text-white mb-2">Tạo Tin Tuyển Dụng</h2>
+    <p class="text-[#4c669a] dark:text-gray-400">Điền thông tin bên dưới để đăng vị trí tuyển dụng mới lên trang tuyển
+      dụng.</p>
   </div>
   <form class="p-8 pt-6" [formGroup]="jobForm" (ngSubmit)="onSubmit($event)">
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
       <div class="col-span-1 md:col-span-2 space-y-2">
-        <label class="text-sm font-medium text-[#0d121b] dark:text-gray-200" for="job-title">Job Title <span
+        <label class="text-sm font-medium text-[#0d121b] dark:text-gray-200" for="job-title">Tên Vị Trí <span
             class="text-red-500">*</span></label>
         <input formControlName="title"
           class="w-full rounded-lg border border-[#cfd7e7] dark:border-gray-600 bg-background-light dark:bg-background-dark px-4 py-3 text-sm text-[#0d121b] dark:text-white placeholder:text-[#4c669a] focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all"
-          id="job-title" placeholder="e.g. Senior Frontend Engineer" type="text" />
+          id="job-title" placeholder="VD: Senior Frontend Engineer" type="text" />
       </div>
       <div class="col-span-1 space-y-2">
-        <label class="text-sm font-medium text-[#0d121b] dark:text-gray-200" for="employment-type">Employment
-          Type <span class="text-red-500">*</span></label>
+        <label class="text-sm font-medium text-[#0d121b] dark:text-gray-200" for="employment-type">Loại Hình
+          <span class="text-red-500">*</span></label>
         <div class="relative">
           <select formControlName="employmentType"
             class="w-full appearance-none rounded-lg border border-[#cfd7e7] dark:border-gray-600 bg-background-light dark:bg-background-dark px-4 py-3 text-sm text-[#0d121b] dark:text-white focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all"
             id="employment-type">
-            <option disabled="" value="">Select type</option>
-            <option value="full-time">Full-time</option>
-            <option value="part-time">Part-time</option>
-            <option value="contract">Contract</option>
-            <option value="internship">Internship</option>
+            <option disabled="" value="">Chọn loại hình</option>
+            <option value="full-time">Toàn thời gian</option>
+            <option value="part-time">Bán thời gian</option>
+            <option value="contract">Hợp đồng</option>
+            <option value="internship">Thực tập</option>
           </select>
           <div class="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#4c669a]">
             <span class="material-symbols-outlined text-[20px]">expand_more</span>
@@ -33,7 +33,7 @@
         </div>
       </div>
       <div class="col-span-1 space-y-2">
-        <label class="text-sm font-medium text-[#0d121b] dark:text-gray-200" for="location">Location <span
+        <label class="text-sm font-medium text-[#0d121b] dark:text-gray-200" for="location">Địa Điểm <span
             class="text-red-500">*</span></label>
         <div class="relative">
           <div class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-primary">
@@ -41,30 +41,29 @@
           </div>
           <input formControlName="location"
             class="w-full rounded-lg border border-[#cfd7e7] dark:border-gray-600 bg-background-light dark:bg-background-dark pl-10 pr-4 py-3 text-sm text-[#0d121b] dark:text-white placeholder:text-[#4c669a] focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all"
-            id="location" placeholder="e.g. New York, NY (Remote)" type="text" />
+            id="location" placeholder="VD: Hà Nội (Remote)" type="text" />
         </div>
       </div>
       <div class="col-span-1 space-y-2">
-        <label class="text-sm font-medium text-[#0d121b] dark:text-gray-200">Salary Range (Annual)</label>
+        <label class="text-sm font-medium text-[#0d121b] dark:text-gray-200">Mức Lương (Năm)</label>
         <div class="flex items-center gap-3">
           <div class="relative w-full">
             <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[#4c669a]">$</span>
             <input formControlName="salaryMin"
               class="w-full rounded-lg border border-[#cfd7e7] dark:border-gray-600 bg-background-light dark:bg-background-dark pl-8 pr-4 py-3 text-sm text-[#0d121b] dark:text-white placeholder:text-[#4c669a] focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all"
-              placeholder="Min" type="number" />
+              placeholder="Tối thiểu" type="number" />
           </div>
           <span class="text-[#4c669a]">-</span>
           <div class="relative w-full">
             <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[#4c669a]">$</span>
             <input formControlName="salaryMax"
               class="w-full rounded-lg border border-[#cfd7e7] dark:border-gray-600 bg-background-light dark:bg-background-dark pl-8 pr-4 py-3 text-sm text-[#0d121b] dark:text-white placeholder:text-[#4c669a] focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all"
-              placeholder="Max" type="number" />
+              placeholder="Tối đa" type="number" />
           </div>
         </div>
       </div>
       <div class="col-span-1 space-y-2">
-        <label class="text-sm font-medium text-[#0d121b] dark:text-gray-200" for="deadline">Application
-          Deadline</label>
+        <label class="text-sm font-medium text-[#0d121b] dark:text-gray-200" for="deadline">Hạn Nộp Hồ Sơ</label>
         <div class="relative">
           <div class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#4c669a]">
             <span class="material-symbols-outlined text-[20px]">calendar_today</span>
@@ -75,36 +74,33 @@
         </div>
       </div>
       <div class="col-span-1 md:col-span-2 space-y-2">
-        <label class="text-sm font-medium text-[#0d121b] dark:text-gray-200" for="description">Job Description
+        <label class="text-sm font-medium text-[#0d121b] dark:text-gray-200" for="description">Mô Tả Công Việc
           <span class="text-red-500">*</span></label>
         <textarea formControlName="description"
           class="w-full rounded-lg border border-[#cfd7e7] dark:border-gray-600 bg-background-light dark:bg-background-dark px-4 py-3 text-sm text-[#0d121b] dark:text-white placeholder:text-[#4c669a] focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all min-h-[150px] resize-y"
-          id="description" placeholder="Describe the role responsibilities, requirements, and benefits..."
-          rows="6"></textarea>
+          id="description" placeholder="Mô tả trách nhiệm, yêu cầu và quyền lợi của vị trí..." rows="6"></textarea>
       </div>
       <div class="col-span-1 md:col-span-2 space-y-2">
-        <label class="text-sm font-medium text-[#0d121b] dark:text-gray-200" for="requirements">Requirements</label>
+        <label class="text-sm font-medium text-[#0d121b] dark:text-gray-200" for="requirements">Yêu Cầu</label>
         <textarea formControlName="requirements"
           class="w-full rounded-lg border border-[#cfd7e7] dark:border-gray-600 bg-background-light dark:bg-background-dark px-4 py-3 text-sm text-[#0d121b] dark:text-white placeholder:text-[#4c669a] focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all min-h-[120px] resize-y"
-          id="requirements" placeholder="List candidate requirements (HTML supported)..." rows="5"></textarea>
-        <p class="text-xs text-[#4c669a]">You can use HTML tags like &lt;ul&gt;, &lt;li&gt;, &lt;strong&gt;</p>
+          id="requirements" placeholder="Liệt kê các yêu cầu ứng viên" rows="5"></textarea>
       </div>
       <div class="col-span-1 md:col-span-2 space-y-2">
-        <label class="text-sm font-medium text-[#0d121b] dark:text-gray-200" for="benefits">Benefits</label>
+        <label class="text-sm font-medium text-[#0d121b] dark:text-gray-200" for="benefits">Quyền Lợi</label>
         <textarea formControlName="benefits"
           class="w-full rounded-lg border border-[#cfd7e7] dark:border-gray-600 bg-background-light dark:bg-background-dark px-4 py-3 text-sm text-[#0d121b] dark:text-white placeholder:text-[#4c669a] focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all min-h-[120px] resize-y"
-          id="benefits" placeholder="List benefits and perks (HTML supported)..." rows="5"></textarea>
-        <p class="text-xs text-[#4c669a]">You can use HTML tags like &lt;ul&gt;, &lt;li&gt;, &lt;strong&gt;</p>
+          id="benefits" placeholder="Liệt kê quyền lợi và phúc lợi" rows="5"></textarea>
       </div>
       <div class="col-span-1 space-y-2">
-        <label class="text-sm font-medium text-[#0d121b] dark:text-gray-200" for="numberOfPositions">Number of
-          Positions</label>
+        <label class="text-sm font-medium text-[#0d121b] dark:text-gray-200" for="numberOfPositions">Số Lượng
+          Tuyển</label>
         <input formControlName="numberOfPositions"
           class="w-full rounded-lg border border-[#cfd7e7] dark:border-gray-600 bg-background-light dark:bg-background-dark px-4 py-3 text-sm text-[#0d121b] dark:text-white placeholder:text-[#4c669a] focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all"
-          id="numberOfPositions" placeholder="e.g. 2" type="number" min="1" />
+          id="numberOfPositions" placeholder="VD: 2" type="number" min="1" />
       </div>
       <div class="col-span-1 md:col-span-2 space-y-3">
-        <label class="text-sm font-medium text-[#0d121b] dark:text-gray-200">Required Skills</label>
+        <label class="text-sm font-medium text-[#0d121b] dark:text-gray-200">Kỹ Năng Yêu Cầu</label>
         <div class="flex flex-wrap gap-2">
           <!-- Hiển thị skills từ API -->
           <button *ngFor="let skill of skills" (click)="toggleSkill(skill.skillId)"
@@ -120,7 +116,6 @@
               [class.opacity-0]="!isSkillSelected(skill.skillId)">check</span>
           </button>
         </div>
-        <p class="text-xs text-[#4c669a]">Click to toggle selection ({{ selectedSkillIds.length }} selected)</p>
       </div>
     </div>
     <div
@@ -128,19 +123,19 @@
       <button (click)="onCancel()"
         class="w-full md:w-auto rounded-lg px-6 py-3 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
         type="button">
-        Cancel
+        Hủy
       </button>
       <button [disabled]="isSubmitting"
         class="w-full md:w-auto flex items-center justify-center gap-2 rounded-lg bg-primary px-8 py-3 text-sm font-bold text-white shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-[#1a202c] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         type="submit">
         <span class="material-symbols-outlined text-[20px]" *ngIf="!isSubmitting">send</span>
         <span class="material-symbols-outlined text-[20px] animate-spin" *ngIf="isSubmitting">progress_activity</span>
-        {{ isSubmitting ? 'Posting...' : 'Post Job' }}
+        {{ isSubmitting ? 'Đang đăng...' : 'Đăng Tin' }}
       </button>
     </div>
   </form>
   <div class="px-8 pb-6 text-center border-t border-gray-100 dark:border-gray-800 mt-6 pt-6">
-    <p class="text-sm text-[#4c669a]">Need help? <a class="text-primary hover:underline" href="#">View the
-        documentation</a> or contact support.</p>
+    <p class="text-sm text-[#4c669a]">Cần trợ giúp? <a class="text-primary hover:underline" href="#">Xem tài liệu</a>
+      hoặc liên hệ hỗ trợ.</p>
   </div>
 </div>

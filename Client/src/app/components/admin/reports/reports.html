@@ -1,0 +1,142 @@
+<div class="w-full max-w-[1440px] mx-auto px-4 md:px-6 py-8 flex flex-col gap-6">
+
+  <!-- Header -->
+  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div class="flex flex-col gap-1">
+      <h1 class="text-2xl font-bold text-[#0d121b] tracking-tight">📊 Báo cáo Tuyển dụng</h1>
+      <p class="text-[#4c649a] text-sm">Theo dõi hiệu quả tuyển dụng và xu hướng ứng viên</p>
+    </div>
+    <div class="flex items-center gap-3">
+      <select [(ngModel)]="selectedYear" (change)="onYearChange($event)"
+        class="flex items-center gap-2 bg-white border border-[#e7ebf3] rounded-lg px-3 py-2 text-sm font-medium text-[#0d121b] hover:bg-gray-50 transition-colors shadow-sm cursor-pointer">
+        <option *ngFor="let year of years" [value]="year">Năm {{year}}</option>
+      </select>
+      <button (click)="exportToExcel()"
+        class="flex items-center gap-2 bg-primary text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-blue-600 transition-colors shadow-sm shadow-blue-200">
+        <span class="material-symbols-outlined text-[18px]">download</span>
+        <span>Xuất Excel</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="flex items-center justify-center h-64">
+    <div class="flex flex-col items-center gap-3">
+      <div class="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+      <p class="text-gray-500 text-sm">Đang tải dữ liệu...</p>
+    </div>
+  </div>
+
+  <!-- Summary Cards -->
+  <div *ngIf="!isLoading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+
+    <!-- Total Candidates -->
+    <div class="bg-white rounded-xl border border-[#e7ebf3] p-5 shadow-sm flex flex-col gap-4">
+      <div class="flex items-center justify-between">
+        <div class="p-2.5 rounded-lg bg-blue-50 text-blue-600">
+          <span class="material-symbols-outlined text-[28px]">group</span>
+        </div>
+      </div>
+      <div>
+        <p class="text-[#4c649a] text-sm font-medium">Tổng ứng viên</p>
+        <h3 class="text-3xl font-bold text-[#0d121b] mt-1">{{ summary.totalCandidates }}</h3>
+        <p class="text-xs text-[#9ca3af] mt-1">Tổng số ứng viên</p>
+      </div>
+    </div>
+
+    <!-- Hired Count -->
+    <div class="bg-white rounded-xl border border-[#e7ebf3] p-5 shadow-sm flex flex-col gap-4">
+      <div class="flex items-center justify-between">
+        <div class="p-2.5 rounded-lg bg-green-50 text-green-600">
+          <span class="material-symbols-outlined text-[28px]">check_circle</span>
+        </div>
+      </div>
+      <div>
+        <p class="text-[#4c649a] text-sm font-medium">Đã tuyển</p>
+        <h3 class="text-3xl font-bold text-[#0d121b] mt-1">{{ summary.hiredCount }}</h3>
+        <p class="text-xs text-[#9ca3af] mt-1">Status = HIRED</p>
+      </div>
+    </div>
+
+    <!-- Open Jobs -->
+    <div class="bg-white rounded-xl border border-[#e7ebf3] p-5 shadow-sm flex flex-col gap-4">
+      <div class="flex items-center justify-between">
+        <div class="p-2.5 rounded-lg bg-purple-50 text-purple-600">
+          <span class="material-symbols-outlined text-[28px]">work</span>
+        </div>
+      </div>
+      <div>
+        <p class="text-[#4c649a] text-sm font-medium">Vị trí đang mở</p>
+        <h3 class="text-3xl font-bold text-[#0d121b] mt-1">{{ summary.openJobsCount }}</h3>
+        <p class="text-xs text-[#9ca3af] mt-1">Jobs chưa đóng</p>
+      </div>
+    </div>
+
+    <!-- Conversion Rate -->
+    <div class="bg-white rounded-xl border border-[#e7ebf3] p-5 shadow-sm flex flex-col gap-4">
+      <div class="flex items-center justify-between">
+        <div class="p-2.5 rounded-lg bg-orange-50 text-orange-600">
+          <span class="material-symbols-outlined text-[28px]">trending_up</span>
+        </div>
+      </div>
+      <div>
+        <p class="text-[#4c649a] text-sm font-medium">Tỷ lệ tuyển dụng</p>
+        <h3 class="text-3xl font-bold text-[#0d121b] mt-1">{{ summary.conversionRate }}%</h3>
+        <p class="text-xs text-[#9ca3af] mt-1">Hired / Applications * 100</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Grid -->
+  <div *ngIf="!isLoading" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+    <!-- Funnel Chart (Bar) -->
+    <div class="bg-white rounded-xl border border-[#e7ebf3] p-6 shadow-sm">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h3 class="text-lg font-bold text-[#0d121b]">📉 Phễu Tuyển Dụng</h3>
+          <p class="text-xs text-[#4c649a]">Quá trình từ Ứng tuyển đến Tuyển dụng</p>
+        </div>
+      </div>
+      <div class="h-[300px] flex items-center justify-center">
+        <canvas baseChart [data]="funnelChartData" [options]="funnelChartOptions" [type]="funnelChartType">
+        </canvas>
+      </div>
+    </div>
+
+    <!-- Source Chart (Pie) -->
+    <div class="bg-white rounded-xl border border-[#e7ebf3] p-6 shadow-sm">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h3 class="text-lg font-bold text-[#0d121b]">🎯 Nguồn Ứng Viên</h3>
+          <p class="text-xs text-[#4c649a]">Phân bố theo nguồn</p>
+        </div>
+      </div>
+      <div class="h-[300px] flex items-center justify-center">
+        <canvas baseChart [data]="sourceChartData" [options]="sourceChartOptions" [type]="sourceChartType">
+        </canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Trend Chart (Line) -->
+  <div *ngIf="!isLoading" class="bg-white rounded-xl border border-[#e7ebf3] p-6 shadow-sm">
+    <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+      <div>
+        <h3 class="text-lg font-bold text-[#0d121b]">📈 Xu Hướng Ứng Tuyển</h3>
+        <p class="text-sm text-[#4c649a]">Số lượng ứng tuyển theo 12 tháng năm 2026</p>
+      </div>
+      <div class="flex gap-2">
+        <span
+          class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-xs font-medium text-blue-700 border border-blue-100">
+          Năm hiện tại
+        </span>
+      </div>
+    </div>
+    <div class="h-[320px]">
+      <canvas baseChart [data]="trendChartData" [options]="trendChartOptions" [type]="trendChartType">
+      </canvas>
+    </div>
+  </div>
+
+</div>

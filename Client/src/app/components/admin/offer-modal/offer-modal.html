@@ -1,0 +1,280 @@
+<!-- Overlay -->
+<div *ngIf="isOpen" class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+    (click)="closeModal()">
+    <!-- Modal Box -->
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden"
+        (click)="$event.stopPropagation()">
+
+        <!-- Header -->
+        <div
+            class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-white dark:from-gray-800 dark:to-gray-800">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                    <span class="material-symbols-outlined text-white text-[24px]">mail</span>
+                </div>
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Gửi Thư Mời Nhận Việc</h2>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Offer Letter - {{ candidate?.fullName }}</p>
+                </div>
+            </div>
+            <button (click)="closeModal()"
+                class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                <span class="material-symbols-outlined text-gray-500">close</span>
+            </button>
+        </div>
+
+        <!-- Body: Grid 2 cột -->
+        <div class="grid grid-cols-12 gap-6 p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+
+            <!-- CỘT TRÁI: Form Input (4 cols) -->
+            <div class="col-span-12 lg:col-span-4 space-y-5">
+                <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <h3 class="font-bold text-blue-900 dark:text-blue-100 mb-2 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-[20px]">info</span>
+                        Thông tin Offer
+                    </h3>
+                    <p class="text-sm text-blue-700 dark:text-blue-300">Nhập đầy đủ thông tin bên dưới. Email preview sẽ
+                        tự động cập nhật.</p>
+                </div>
+
+                <!-- Mức lương -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        Mức lương (VNĐ) <span class="text-red-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">💰</span>
+                        <input type="number" [(ngModel)]="offerData.salary" placeholder="VD: 15000000"
+                            class="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-all" />
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Gross/Net trước thuế</p>
+                </div>
+
+                <!-- Ngày bắt đầu -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        Ngày bắt đầu làm việc <span class="text-red-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">📅</span>
+                        <input type="date" [(ngModel)]="offerData.startDate"
+                            class="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-all" />
+                    </div>
+                </div>
+
+                <!-- Hạn phản hồi -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        Hạn phản hồi <span class="text-red-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">⏳</span>
+                        <input type="date" [(ngModel)]="offerData.expiryDate"
+                            class="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-all" />
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Ứng viên cần xác nhận trước ngày này</p>
+                </div>
+
+                <!-- Loại hợp đồng -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        Loại hợp đồng <span class="text-red-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">📝</span>
+                        <select [(ngModel)]="offerData.contractType"
+                            class="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-all appearance-none bg-white dark:bg-gray-700">
+                            <option value="">-- Chọn loại hợp đồng --</option>
+                            <option value="PROBATION">Thử việc 2 tháng</option>
+                            <option value="OFFICIAL_1Y">Chính thức 1 năm</option>
+                            <option value="OFFICIAL_3Y">Chính thức 3 năm</option>
+                            <option value="FREELANCE">Cộng tác viên (Freelance)</option>
+                        </select>
+                        <span
+                            class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">expand_more</span>
+                    </div>
+                </div>
+
+                <!-- Divider -->
+                <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+
+                <!-- CC Options -->
+                <div
+                    class="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-600">
+                    <h4 class="text-sm font-bold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-[18px]">forward_to_inbox</span>
+                        Tùy chọn CC Email
+                    </h4>
+
+                    <!-- Checkbox: CC Interviewer -->
+                    <div class="flex items-start gap-3 mb-3">
+                        <input type="checkbox" id="ccInterviewer" [(ngModel)]="offerData.ccInterviewer"
+                            class="mt-1 w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500" />
+                        <label for="ccInterviewer"
+                            class="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
+                            <span class="block">CC Người phỏng vấn</span>
+                            <span class="block text-xs text-gray-500 font-normal">
+                                Tự động CC tới người đã phỏng vấn ứng viên
+                            </span>
+                        </label>
+                    </div>
+
+                    <!-- Input: Additional CC -->
+                    <div>
+                        <label for="additionalCC"
+                            class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                            Thêm CC (Optional)
+                        </label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">📧</span>
+                            <input type="text" id="additionalCC" [(ngModel)]="offerData.additionalCcEmails"
+                                placeholder="hr@company.com, manager@company.com"
+                                class="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm" />
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">Nhập nhiều email cách nhau bởi dấu phẩy</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CỘT PHẢI: Email Preview (8 cols) -->
+            <div class="col-span-12 lg:col-span-8">
+                <div class="sticky top-0">
+                    <div
+                        class="bg-gray-100 dark:bg-gray-900 p-1 rounded-t-lg border-x border-t border-gray-300 dark:border-gray-600">
+                        <div class="flex items-center gap-2 px-3 py-2">
+                            <span class="material-symbols-outlined text-gray-500 text-[18px]">visibility</span>
+                            <span class="text-xs font-semibold text-gray-600 dark:text-gray-400">XEM TRƯỚC EMAIL</span>
+                        </div>
+                    </div>
+
+                    <div
+                        class="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-b-lg shadow-inner p-6 max-h-[500px] overflow-y-auto">
+                        <!-- Email Content Preview -->
+                        <div
+                            class="bg-gray-50 dark:bg-gray-700/50 p-6 rounded-lg border border-gray-200 dark:border-gray-600 text-sm text-gray-800 dark:text-gray-200 leading-relaxed font-sans">
+                            <!-- Email Header -->
+                            <div class="border-b border-gray-300 dark:border-gray-600 pb-3 mb-4">
+                                <p class="mb-1"><strong>To:</strong> <span class="text-blue-600 dark:text-blue-400">{{
+                                        candidate?.email || 'candidate@example.com' }}</span></p>
+                                <p><strong>Subject:</strong> [V9 TECH] THƯ MỜI NHẬN VIỆC - {{ candidate?.fullName ||
+                                    'Ứng viên' }}</p>
+                            </div>
+
+                            <!-- Email Body -->
+                            <p class="mb-3">Thân gửi bạn <strong>{{ candidate?.fullName || 'Ứng viên' }}</strong>,</p>
+
+                            <p class="mb-3">Thay mặt Ban lãnh đạo công ty <strong>V9 TECH</strong>, bộ phận Tuyển dụng
+                                trân trọng cảm ơn bạn đã tham gia phỏng vấn cho vị trí <strong>{{ candidate?.jobTitle ||
+                                    candidate?.position || 'Vị trí ứng tuyển' }}</strong>. Chúng tôi rất ấn tượng với
+                                năng lực và kinh nghiệm của bạn.</p>
+
+                            <p class="mb-4">Chúng tôi trân trọng mời bạn gia nhập đội ngũ V9 TECH với các điều khoản
+                                chính thức sau:</p>
+
+                            <!-- Offer Details Box -->
+                            <div class="bg-blue-50 dark:bg-blue-900/30 border-l-4 border-blue-600 p-5 my-5 rounded-r">
+                                <h4 class="font-bold text-blue-900 dark:text-blue-100 mb-3 flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-[20px]">workspace_premium</span>
+                                    ĐIỀU KHOẢN OFFER
+                                </h4>
+                                <ul class="space-y-3">
+                                    <li class="flex items-start gap-2">
+                                        <span class="text-blue-600">📅</span>
+                                        <div>
+                                            <strong>Ngày bắt đầu:</strong>
+                                            <span [class.text-red-500]="!offerData.startDate"
+                                                [class.italic]="!offerData.startDate">
+                                                {{ offerData.startDate ? (offerData.startDate | date:'dd/MM/yyyy') :
+                                                '(Chưa nhập)' }}
+                                            </span>
+                                        </div>
+                                    </li>
+                                    <li class="flex items-start gap-2">
+                                        <span class="text-blue-600">💰</span>
+                                        <div>
+                                            <strong>Mức lương:</strong>
+                                            <span class="font-bold text-lg" [class.text-red-500]="!offerData.salary"
+                                                [class.italic]="!offerData.salary"
+                                                [class.text-blue-700]="offerData.salary"
+                                                [class.dark:text-blue-300]="offerData.salary">
+                                                {{ offerData.salary ? (offerData.salary | number:'1.0-0') + ' VNĐ' :
+                                                '(Chưa nhập)' }}
+                                            </span>
+                                            <span class="text-xs text-gray-500 ml-1">(Gross/Net)</span>
+                                        </div>
+                                    </li>
+                                    <li class="flex items-start gap-2">
+                                        <span class="text-blue-600">📝</span>
+                                        <div>
+                                            <strong>Loại hợp đồng:</strong>
+                                            <span [class.text-red-500]="!offerData.contractType"
+                                                [class.italic]="!offerData.contractType">
+                                                {{ offerData.contractType ? getContractTypeName(offerData.contractType)
+                                                : '(Chưa chọn)' }}
+                                            </span>
+                                        </div>
+                                    </li>
+                                    <li class="flex items-start gap-2">
+                                        <span class="text-blue-600">⏳</span>
+                                        <div>
+                                            <strong>Hạn phản hồi:</strong>
+                                            <span [class.text-red-500]="!offerData.expiryDate"
+                                                [class.italic]="!offerData.expiryDate">
+                                                {{ offerData.expiryDate ? (offerData.expiryDate | date:'dd/MM/yyyy') :
+                                                '(Chưa nhập)' }}
+                                            </span>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <p class="mb-3">Chi tiết đầy đủ về các quyền lợi, chế độ đãi ngộ, và trách nhiệm công việc
+                                vui lòng xem file <strong class="text-blue-600">Offer_Letter.pdf</strong> đính kèm theo
+                                email này.</p>
+
+                            <p class="mb-4">
+                                Vui lòng xác nhận việc <strong>CHẤP NHẬN</strong> hoặc <strong>TỪ CHỐI</strong> offer
+                                này qua email trước ngày
+                                <strong class="text-blue-600" [class.text-red-600]="!offerData.expiryDate">
+                                    {{ offerData.expiryDate ? (offerData.expiryDate | date:'dd/MM/yyyy') : '(Chưa nhập
+                                    hạn)' }}
+                                </strong>.
+                            </p>
+
+                            <p class="mb-2">Chúng tôi rất mong được chào đón bạn trở thành thành viên chính thức của V9
+                                TECH! 🎉</p>
+
+                            <!-- Email Footer -->
+                            <div class="mt-6 pt-4 border-t border-gray-300 dark:border-gray-600">
+                                <p class="font-bold text-gray-900 dark:text-gray-100">Trân trọng,</p>
+                                <p class="font-semibold text-blue-600 dark:text-blue-400">Phòng Nhân Sự - V9 TECH</p>
+                                <p class="text-xs text-gray-500 mt-2">📧 hr@v9tech.vn | 📞 +84 123 456 789</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer Actions -->
+        <div
+            class="flex items-center justify-between px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+            <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                <span class="material-symbols-outlined text-[18px]">info</span>
+                <span>Kiểm tra kỹ thông tin trước khi gửi</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <button (click)="closeModal()"
+                    class="px-5 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                    Hủy bỏ
+                </button>
+                <button (click)="sendOffer()" [disabled]="!isFormValid()"
+                    class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg font-semibold shadow-lg shadow-blue-600/30 transition-all flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[20px]">send</span>
+                    <span>Gửi Offer</span>
+                </button>
+            </div>
+        </div>
+
+    </div>
+</div>

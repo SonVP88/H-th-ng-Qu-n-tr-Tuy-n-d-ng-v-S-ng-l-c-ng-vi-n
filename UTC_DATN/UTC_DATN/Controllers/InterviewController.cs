@@ -5,25 +5,28 @@ using UTC_DATN.Services.Interfaces;
 namespace UTC_DATN.Controllers;
 
 /// <summary>
-/// Controller xử lý các API liên quan đến Human-in-the-loop Email
+/// Controller xử lý các API liên quan đến Interview và Email
 /// </summary>
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/interviews")]
 [Authorize]
 public class InterviewController : ControllerBase
 {
     private readonly IAiMatchingService _aiMatchingService;
     private readonly IEmailService _emailService;
     private readonly ILogger<InterviewController> _logger;
+    private readonly IInterviewService _interviewService;
 
     public InterviewController(
         IAiMatchingService aiMatchingService,
         IEmailService emailService,
-        ILogger<InterviewController> logger)
+        ILogger<InterviewController> logger,
+        IInterviewService interviewService)
     {
         _aiMatchingService = aiMatchingService;
         _emailService = emailService;
         _logger = logger;
+        _interviewService = interviewService;
     }
 
     /// <summary>
@@ -129,6 +132,52 @@ public class InterviewController : ControllerBase
         {
             _logger.LogError(ex, "Lỗi khi gửi email thủ công");
             return StatusCode(500, new { message = "Có lỗi xảy ra khi gửi email: " + ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// API lấy lịch phỏng vấn cá nhân của người phỏng vấn (SECURITY: Lấy UserId từ JWT Token)
+    /// </summary>
+    /// <returns>Danh sách lịch phỏng vấn của người phỏng vấn hiện tại</returns>
+    [HttpGet("my-schedule")]
+    [Authorize(Roles = "INTERVIEWER, HR, ADMIN")]
+    public async Task<IActionResult> GetMySchedule()
+    {
+        try
+        {
+            _logger.LogInformation("📅 API GetMySchedule - Lấy lịch phỏng vấn cá nhân");
+
+            // SECURITY: Lấy CurrentUserId từ JWT Token (KHÔNG cho phép client truyền userId)
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var currentUserId))
+            {
+                _logger.LogWarning("⚠️ Unauthorized access attempt - UserId claim missing or invalid");
+                return Unauthorized(new { success = false, message = "Vui lòng đăng nhập để xem lịch phỏng vấn." });
+            }
+
+            _logger.LogInformation("✅ Authenticated User - UserId: {UserId}", currentUserId);
+
+            // Lấy danh sách lịch phỏng vấn từ service
+            var interviews = await _interviewService.GetMyInterviewScheduleAsync(currentUserId);
+
+            _logger.LogInformation("📊 Found {Count} interviews for InterviewerId: {InterviewerId}", 
+                interviews.Count, currentUserId);
+
+            return Ok(new 
+            { 
+                success = true, 
+                data = interviews 
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ Error getting my interview schedule");
+            return StatusCode(500, new 
+            { 
+                success = false, 
+                message = "Có lỗi xảy ra khi lấy lịch phỏng vấn." 
+            });
         }
     }
 }
