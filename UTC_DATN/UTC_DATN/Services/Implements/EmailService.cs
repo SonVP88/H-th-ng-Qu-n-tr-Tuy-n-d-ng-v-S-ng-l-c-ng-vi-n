@@ -88,7 +88,7 @@ public class EmailService : IEmailService
                 return;
             }
 
-            _logger.LogInformation("📧 Đang gửi email đến: {ToEmail} với {CcCount} CC, Subject: {Subject}", 
+            _logger.LogInformation(" Đang gửi email đến: {ToEmail} với {CcCount} CC, Subject: {Subject}", 
                 toEmail, ccEmails?.Count ?? 0, subject);
 
             // Tạo MailMessage
