@@ -35,7 +35,6 @@ export class Register {
     }, { validators: this.passwordMatchValidator });
   }
 
-  // Custom validator for password match
   passwordMatchValidator: ValidatorFn = (control: AbstractControl): ValidationErrors | null => {
     const password = control.get('password');
     const confirmPassword = control.get('confirmPassword');
@@ -44,7 +43,6 @@ export class Register {
       confirmPassword.setErrors({ ...confirmPassword.errors, passwordMismatch: true });
       return { passwordMismatch: true };
     } else {
-      // Remove the passwordMismatch error if it exists
       if (confirmPassword?.hasError('passwordMismatch')) {
         const errors = { ...confirmPassword.errors };
         delete errors['passwordMismatch'];

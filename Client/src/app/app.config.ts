@@ -13,7 +13,7 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes), provideClientHydration(withEventReplay()),
     provideHttpClient(
       withFetch(),
-      withInterceptors([authInterceptor]) // Thêm auth interceptor
+      withInterceptors([authInterceptor])
     )
   ]
 };

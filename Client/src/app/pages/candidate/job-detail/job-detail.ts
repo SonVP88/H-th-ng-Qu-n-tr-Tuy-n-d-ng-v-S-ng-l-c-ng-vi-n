@@ -7,7 +7,6 @@ import { CandidateHeaderComponent } from '../../../components/shared/candidate-h
 import { SavedJobService } from '../../../services/saved-job.service';
 import { ToastService } from '../../../services/toast.service';
 
-// Interface khớp với Backend JobDetailDto
 export interface JobDetailDto {
   jobId: string;
   title: string;
@@ -38,7 +37,6 @@ export class JobDetail implements OnInit {
   loading = true;
   error: string | null = null;
 
-  // Apply Form
   applyForm!: FormGroup;
   selectedFile: File | null = null;
   selectedFileName: string = '';
@@ -71,7 +69,6 @@ export class JobDetail implements OnInit {
       introduction: ['', [Validators.maxLength(2000)]]
     });
 
-    // Lấy ID từ URL params
     const id = this.route.snapshot.paramMap.get('id');
 
     if (!id) {
@@ -162,7 +159,7 @@ export class JobDetail implements OnInit {
    */
   private checkIfSaved(jobId: string): void {
     const token = localStorage.getItem('authToken');
-    if (!token) return; // User not logged in, skip fetching saved status
+    if (!token) return; 
 
     this.savedJobService.checkSaved(jobId).subscribe({
       next: (response) => {
@@ -181,7 +178,6 @@ export class JobDetail implements OnInit {
   toggleSaveJob(): void {
     const token = localStorage.getItem('authToken');
     if (!token) {
-      // Redirect to login or show modal
       this.toast.warning('Yêu cầu đăng nhập', 'Bạn cần đăng nhập để lưu công việc này!');
       this.router.navigate(['/candidate/login']);
       return;
@@ -248,11 +244,11 @@ export class JobDetail implements OnInit {
    * Submit application
    */
   onSubmitApply(): void {
-    // Reset messages
+
     this.submitSuccess = false;
     this.submitError = null;
 
-    // Validate form
+
     if (this.applyForm.invalid) {
       Object.keys(this.applyForm.controls).forEach(key => {
         this.applyForm.get(key)?.markAsTouched();
@@ -261,13 +257,11 @@ export class JobDetail implements OnInit {
       return;
     }
 
-    // Validate file
     if (!this.selectedFile) {
       this.submitError = 'Vui lòng chọn file CV';
       return;
     }
 
-    // Validate job
     if (!this.job) {
       this.submitError = 'Không tìm thấy thông tin công việc';
       return;
@@ -275,7 +269,6 @@ export class JobDetail implements OnInit {
 
     this.isSubmitting = true;
 
-    // Create FormData
     const formData = new FormData();
     formData.append('jobId', this.job.jobId);
     formData.append('fullName', this.applyForm.get('fullName')?.value);
@@ -284,7 +277,6 @@ export class JobDetail implements OnInit {
     formData.append('introduction', this.applyForm.get('introduction')?.value || '');
     formData.append('cvFile', this.selectedFile);
 
-    // Call API
     this.http.post<any>(`${this.apiUrl}/applications/apply`, formData)
       .subscribe({
         next: (response) => {
@@ -295,7 +287,6 @@ export class JobDetail implements OnInit {
 
           this.toast.success('Ứng tuyển thành công', 'Hồ sơ đã được gửi đến nhà tuyển dụng!');
 
-          // Reset form
           this.applyForm.reset();
           this.selectedFile = null;
           this.selectedFileName = '';
@@ -383,7 +374,6 @@ export class JobDetail implements OnInit {
    */
   openApplyModal(): void {
     this.isModalOpen = true;
-    // Reset messages when opening modal
     this.submitSuccess = false;
     this.submitError = null;
   }
@@ -393,7 +383,6 @@ export class JobDetail implements OnInit {
    */
   closeModal(): void {
     this.isModalOpen = false;
-    // Reset form when closing
     if (!this.submitSuccess) {
       this.applyForm.reset();
       this.selectedFile = null;

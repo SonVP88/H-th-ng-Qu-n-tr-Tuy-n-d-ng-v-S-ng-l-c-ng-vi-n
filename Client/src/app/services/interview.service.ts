@@ -3,7 +3,6 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { isPlatformBrowser } from '@angular/common';
 
-// DTO for interview schedule
 export interface MyInterviewDto {
     interviewId: string;
     interviewerId: string;
@@ -39,14 +38,8 @@ export class InterviewService {
 
     constructor(private http: HttpClient) { }
 
-    /**
-     * Lấy danh sách lịch phỏng vấn cá nhân (SECURE: UserId được lấy từ JWT Token ở Backend)
-     * KHÔNG truyền userId qua tham số để tránh IDOR vulnerability
-     */
     getMyInterviews(): Observable<ApiResponse<MyInterviewDto[]>> {
-        // ⚡ SSR Fix: Only access localStorage in browser
         if (!isPlatformBrowser(this.platformId)) {
-            console.log('⏭️ SSR: Skipping API call requiring token');
             return of({ success: false, data: [] as MyInterviewDto[], message: 'SSR: Skipping call' });
         }
 

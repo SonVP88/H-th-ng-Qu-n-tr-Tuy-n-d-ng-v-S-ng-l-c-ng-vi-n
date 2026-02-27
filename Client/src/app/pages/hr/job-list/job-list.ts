@@ -41,23 +41,32 @@ export class JobListComponent implements OnInit {
     };
 
     ngOnInit(): void {
+        console.log('[JobList] 🚀 Component initialized');
         this.loadJobs();
     }
 
     loadJobs(): void {
         this.isLoading.set(true);
-        console.log(' Loading jobs...');
+        const loadStart = performance.now();
+        console.log('[JobList] ⏳ Đang bắt đầu quá trình nạp dữ liệu...');
 
         this.jobService.fetchJobs().subscribe({
             next: (data: JobDto[]) => {
-                console.log(' Jobs loaded:', data);
+                const fetchEnd = performance.now();
+                console.log(`[JobList] 📥 Đã nhận ${(data || []).length} jobs từ service (Mất ${(fetchEnd - loadStart).toFixed(2)}ms)`);
+
+                const processStart = performance.now();
                 this.jobs.set(data);
                 this.filterJobs();
                 this.isLoading.set(false);
                 this.cdr.detectChanges();
+
+                const processEnd = performance.now();
+                console.log(`[JobList] ✨ Đã render xong giao diện (Mất ${(processEnd - processStart).toFixed(2)}ms)`);
+                console.log(`[JobList] 🏁 Tổng thời gian từ lúc vào trang đến khi xong: ${(processEnd - loadStart).toFixed(2)}ms`);
             },
             error: (err: any) => {
-                console.error(' Error loading jobs:', err);
+                console.error('[JobList] ❌ Lỗi khi tải jobs:', err);
                 this.isLoading.set(false);
                 this.cdr.detectChanges();
             }

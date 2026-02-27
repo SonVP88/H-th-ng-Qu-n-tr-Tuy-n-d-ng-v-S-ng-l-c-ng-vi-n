@@ -122,7 +122,7 @@ export class JobSearchComponent implements OnInit {
           current.delete(jobId);
           this.toast.success('Bỏ lưu thành công', 'Đã bỏ lưu công việc này.');
         }
-        this.savedJobIdsSubject.next(new Set(current)); // emit giá trị mới để async pipe tự nhận biết
+        this.savedJobIdsSubject.next(new Set(current)); 
       },
       error: (err) => {
         console.error('Toggle save error:', err);
@@ -226,7 +226,7 @@ export class JobSearchComponent implements OnInit {
         this.filter.jobType = '';
       }
     }
-    this.onSearch(); // Tự động tìm kiếm ngay khi bộ lọc thay đổi
+    this.onSearch(); 
   }
 
   isJobTypeSelected(type: string): boolean {

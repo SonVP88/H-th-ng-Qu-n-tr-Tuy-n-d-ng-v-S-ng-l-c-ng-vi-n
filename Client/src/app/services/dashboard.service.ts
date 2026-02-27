@@ -49,9 +49,7 @@ export class DashboardService {
 
     constructor(private http: HttpClient) { }
 
-    /**
-     * Lấy summary statistics cho 4 cards
-     */
+
     getSummary(): Observable<DashboardSummaryDto> {
         return this.http.get<DashboardSummaryDto>(`${this.apiUrl}/summary`);
     }
@@ -62,9 +60,7 @@ export class DashboardService {
         });
     }
 
-    /**
-     * Lấy recent activity log phân trang
-     */
+
     getPagedActivities(page: number = 1, pageSize: number = 15): Observable<{ totalItems: number, totalPages: number, currentPage: number, items: DashboardActivityDto[] }> {
         return this.http.get<{ totalItems: number, totalPages: number, currentPage: number, items: DashboardActivityDto[] }>(`${this.apiUrl}/activities`, {
             params: {
@@ -74,18 +70,14 @@ export class DashboardService {
         });
     }
 
-    /**
-     * Lấy latest candidates cho table
-     */
+
     getLatestCandidates(count: number = 10): Observable<DashboardCandidateDto[]> {
         return this.http.get<DashboardCandidateDto[]>(`${this.apiUrl}/candidates`, {
             params: { count: count.toString() }
         });
     }
 
-    /**
-     * Lấy weekly activity data cho chart
-     */
+
     getWeeklyActivity(weeks: number = 5): Observable<WeeklyActivityDto> {
         return this.http.get<WeeklyActivityDto>(`${this.apiUrl}/weekly-activity`, {
             params: { weeks: weeks.toString() }

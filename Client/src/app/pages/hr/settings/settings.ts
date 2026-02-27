@@ -150,7 +150,6 @@ export class SettingsComponent implements OnInit {
 
         const file = input.files[0];
 
-        // Validate file type
         const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
         if (!validTypes.includes(file.type)) {
             this.toast.warning('Sai định dạng', 'Chỉ chấp nhận file ảnh (jpg, png, gif, webp)!');
@@ -163,7 +162,7 @@ export class SettingsComponent implements OnInit {
             return;
         }
 
-        // Preview locally - wrap in ngZone để trigger change detection
+
         const reader = new FileReader();
         reader.onload = (e) => this.ngZone.run(() => {
             this.avatarPreview = e.target?.result as string;
@@ -171,7 +170,6 @@ export class SettingsComponent implements OnInit {
         });
         reader.readAsDataURL(file);
 
-        // Upload to server
         this.isUploadingAvatar = true;
         const token = localStorage.getItem('authToken');
         const headers = new HttpHeaders({ 'Authorization': `Bearer ${token}` });
@@ -181,19 +179,15 @@ export class SettingsComponent implements OnInit {
 
         this.http.post<{ url: string }>('/api/fileupload/avatar', formData, { headers }).subscribe({
             next: (res) => this.ngZone.run(() => {
-                // Update avatarPreview with the new URL from the server
                 this.avatarPreview = res.url;
                 this.isUploadingAvatar = false;
                 this.cdr.detectChanges();
-
-                // Auto-save avatar URL to profile
-                this.updateProfile(); // Call updateProfile to save the new avatarUrl
+                this.updateProfile();
             }),
             error: (err) => this.ngZone.run(() => {
                 console.error('Avatar upload failed', err);
                 this.toast.error('Tải lên thất bại', err.error?.message || 'Lỗi không xác định');
                 this.isUploadingAvatar = false;
-                // Revert avatarPreview if upload fails, assuming userProfile.avatarUrl holds the last valid one
                 this.accountService.getProfile().subscribe(data => {
                     this.avatarPreview = data.avatarUrl || null;
                     this.cdr.detectChanges();
@@ -319,7 +313,6 @@ export class SettingsComponent implements OnInit {
                     } else if (err.error?.message) {
                         errorMsg = err.error.message;
                     } else if (err.error?.errors) {
-                        // ASP.NET Core validation errors
                         errorMsg = Object.values(err.error.errors).flat().join('\n');
                     }
                     this.toast.error('Đổi mật khẩu thất bại', errorMsg);

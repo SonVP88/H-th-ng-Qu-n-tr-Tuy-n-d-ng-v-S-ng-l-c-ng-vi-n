@@ -32,7 +32,6 @@ export class PublicJobService {
     private apiUrl = `${environment.apiUrl}/public/jobs`;
 
     constructor(private http: HttpClient) {
-        console.log('🌐 PublicJobService initialized with API URL:', this.apiUrl);
     }
 
     searchJobs(filter: JobSearchFilter): Observable<JobPublic[]> {
@@ -44,10 +43,9 @@ export class PublicJobService {
         if (filter.minSalary) params = params.set('minSalary', filter.minSalary.toString());
 
         const url = `${this.apiUrl}/search`;
-        console.log('🚀 Making request to:', url, 'with params:', params.toString());
 
         return this.http.get<JobPublic[]>(url, { params }).pipe(
-            timeout(30000) // 30 second timeout
+            timeout(30000) 
         );
     }
 }

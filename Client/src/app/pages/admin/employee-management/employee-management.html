@@ -410,9 +410,9 @@
             </label>
             <input formControlName="fullName" type="text"
               class="w-full px-4 py-2 border border-gray-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary dark:bg-slate-900 dark:text-white transition-all"
-              placeholder="Nguyễn Văn A" />
-            <p *ngIf="employeeForm.get('fullName')?.invalid && employeeForm.get('fullName')?.touched"
-              class="text-red-500 text-xs mt-1">Họ tên là bắt buộc</p>
+              [class.border-red-500]="hasError('fullName')" placeholder="Nguyễn Văn A" />
+            <span *ngIf="hasError('fullName')" class="text-red-500 text-xs mt-1">{{ getErrorMessage('fullName')
+              }}</span>
           </div>
 
           <!-- Email -->
@@ -422,9 +422,8 @@
             </label>
             <input formControlName="email" type="email"
               class="w-full px-4 py-2 border border-gray-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary dark:bg-slate-900 dark:text-white transition-all"
-              placeholder="example@company.com" />
-            <p *ngIf="employeeForm.get('email')?.invalid && employeeForm.get('email')?.touched"
-              class="text-red-500 text-xs mt-1">Email không hợp lệ</p>
+              [class.border-red-500]="hasError('email')" placeholder="example@company.com" />
+            <span *ngIf="hasError('email')" class="text-red-500 text-xs mt-1">{{ getErrorMessage('email') }}</span>
           </div>
 
           <!-- Số điện thoại -->
@@ -434,9 +433,9 @@
             </label>
             <input formControlName="phoneNumber" type="tel"
               class="w-full px-4 py-2 border border-gray-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary dark:bg-slate-900 dark:text-white transition-all"
-              placeholder="0123456789" />
-            <p *ngIf="employeeForm.get('phoneNumber')?.invalid && employeeForm.get('phoneNumber')?.touched"
-              class="text-red-500 text-xs mt-1">Số điện thoại là bắt buộc</p>
+              [class.border-red-500]="hasError('phoneNumber')" placeholder="0123456789" />
+            <span *ngIf="hasError('phoneNumber')" class="text-red-500 text-xs mt-1">{{ getErrorMessage('phoneNumber')
+              }}</span>
           </div>
 
           <!-- Vai trò -->
@@ -469,6 +468,3 @@
     </div>
   </div>
 </div>
-<div class="p-6" *ngIf="selectedEmployee()">
-  <!-- Avatar + Name + Role -->
-  <div class="flex items-center gap-4 pb-4 mb-4 border-b border-gray-100 dark:border-slate-800">

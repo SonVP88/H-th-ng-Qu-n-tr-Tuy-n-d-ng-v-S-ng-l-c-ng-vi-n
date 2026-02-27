@@ -120,17 +120,14 @@
                     </h3>
                     <div
                         class="prose prose-slate dark:prose-invert max-w-none text-slate-600 dark:text-slate-300 leading-relaxed">
-                        <!-- Description -->
                         <div *ngIf="job?.description" [innerHTML]="job?.description"></div>
                         <div *ngIf="!job?.description" class="text-slate-500 italic">Chưa có mô tả</div>
 
-                        <!-- Requirements (optional) -->
                         <div *ngIf="job?.requirements" class="mt-8">
                             <h4 class="text-lg font-bold text-slate-900 dark:text-white mb-4">Yêu cầu</h4>
                             <div [innerHTML]="job?.requirements"></div>
                         </div>
 
-                        <!-- Benefits (optional) -->
                         <div *ngIf="job?.benefits" class="mt-8">
                             <h4 class="text-lg font-bold text-slate-900 dark:text-white mb-4">Quyền lợi</h4>
                             <div [innerHTML]="job?.benefits"></div>
@@ -230,12 +227,12 @@
                                     class="text-sm text-slate-600 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white truncate">www.techsoft.com</span>
                             </a>
                         </div>
-                        <button
+                        <!-- <button
                             class="w-full mt-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
                             Xem hồ sơ công ty
-                        </button>
+                        </button> -->
                     </div>
-                    <div
+                    <!-- <div
                         class="bg-gradient-to-br from-primary to-blue-700 rounded-xl shadow-card p-6 text-white relative overflow-hidden">
                         <div class="absolute -right-10 -top-10 size-40 bg-white/10 rounded-full blur-2xl"></div>
                         <h3 class="text-lg font-bold mb-2 relative z-10">Được kết nối!</h3>
@@ -246,7 +243,7 @@
                             class="w-full py-2.5 bg-white text-primary rounded-lg text-sm font-bold hover:bg-blue-50 transition-colors relative z-10">
                             Tải CV lên
                         </button>
-                    </div>
+                    </div> -->
                 </div>
             </div>
         </div>

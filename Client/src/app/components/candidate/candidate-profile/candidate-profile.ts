@@ -19,8 +19,8 @@ export class CandidateProfile implements OnInit {
   profile: CandidateProfileDto | null = null;
   cvList: Array<{
     id: string;
-    name: string; // Original Name
-    displayName?: string; // Display Name
+    name: string; 
+    displayName?: string; 
     updated: string;
     size: string;
     url: string;
@@ -78,7 +78,7 @@ export class CandidateProfile implements OnInit {
     this.route.data.subscribe(data => {
       const profile = data['profile'];
       if (profile) {
-        console.log('📦 Resolver data received:', profile);
+        console.log(' Resolver data received:', profile);
         this.isLoading = false;
         try {
           this.profile = profile;
@@ -106,7 +106,7 @@ export class CandidateProfile implements OnInit {
           console.error('Error processing resolver data:', e);
         }
       } else {
-        // Fallback if resolver fails or returns null
+
         this.loadProfile();
       }
     });

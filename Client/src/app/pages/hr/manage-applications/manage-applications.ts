@@ -86,7 +86,7 @@ export class ManageApplications implements OnInit, OnDestroy {
 
   // ==================== PAGINATION ====================
   currentPage = 1;
-  itemsPerPage = 9;
+  itemsPerPage = 6;
   Math = Math; // Expose Math for template
 
   isGeneratingRejectEmail = false;
@@ -1001,6 +1001,7 @@ Phòng Nhân sự`;
    * Triggered when search input changes
    */
   onSearchChange(): void {
+    this.currentPage = 1;
     // Debounce could be added here if needed
     this.cdr.detectChanges();
   }
@@ -1009,6 +1010,7 @@ Phòng Nhân sự`;
    * Apply filters (called when dropdown changes)
    */
   applyFilters(): void {
+    this.currentPage = 1;
     this.cdr.detectChanges();
   }
 
@@ -1020,6 +1022,7 @@ Phòng Nhân sự`;
     this.filterStatus = '';
     this.filterScoreRange = '';
     this.filterDateRange = '';
+    this.currentPage = 1;
     this.cdr.detectChanges();
   }
 

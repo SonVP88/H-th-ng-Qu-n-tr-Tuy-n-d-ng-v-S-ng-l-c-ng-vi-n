@@ -13,7 +13,7 @@ export const profileResolver: ResolveFn<CandidateProfileDto | null> = (
     return candidateService.getProfile().pipe(
         catchError(error => {
             console.error('Resolver failed to load profile', error);
-            return of(null); // Return null on error to allow component to handle fallback
+            return of(null);
         })
     );
 };

@@ -18,12 +18,10 @@ export interface CreateJobRequest {
     skillIds: string[];
 }
 
-// Interface cho response
 export interface CreateJobResponse {
     message: string;
 }
 
-// Interface cho Job DTO (matches backend camelCase response)
 export interface JobDto {
     jobId: string;
     title: string;
@@ -55,7 +53,6 @@ export interface JobDetailDto extends JobDto {
 export class JobService {
     private apiUrl = '/api';
 
-    // State management for Jobs
     private jobsSubject = new BehaviorSubject<JobDto[] | null>(null);
     public jobs$ = this.jobsSubject.asObservable();
     private hasLoaded = false;
@@ -71,14 +68,11 @@ export class JobService {
 
     /**
      * Lấy danh sách tất cả các job (cho admin quản lý)
-     * Returns cached data if available, otherwise fetches from API
      */
     getAllJobs(forceRefresh = false): Observable<JobDto[]> {
-        // Always fetch fresh data on force refresh or if not loaded yet
         if (forceRefresh || !this.hasLoaded || !this.jobsSubject.value) {
             return this.fetchJobs();
         }
-        // Return cached data
         return this.jobs$.pipe(
             filter((jobs): jobs is JobDto[] => jobs !== null),
             take(1)
@@ -89,8 +83,14 @@ export class JobService {
      * Fetch jobs from API and update subject
      */
     fetchJobs(): Observable<JobDto[]> {
+        const startTime = performance.now();
+        console.log(`[JobService] 🕒 Bắt đầu gọi API: /api/jobs at ${new Date().toLocaleTimeString()}`);
+
         return this.http.get<JobDto[]>(`${this.apiUrl}/jobs`).pipe(
             tap(jobs => {
+                const endTime = performance.now();
+                console.log(`[JobService] ✅ Đã nhận dữ liệu từ API. Số lượng: ${jobs.length}`);
+                console.log(`[JobService] ⏱️ Thời gian phản hồi API: ${(endTime - startTime).toFixed(2)}ms`);
                 this.jobsSubject.next(jobs);
                 this.hasLoaded = true;
             })
@@ -128,7 +128,6 @@ export class JobService {
 
     /**
      * Lấy danh sách jobs mới nhất
-     * Hỗ trợ tìm kiếm theo keyword và location
      */
     getLatestJobs(count: number = 10, keyword?: string, location?: string): Observable<JobDto[]> {
         let params = new HttpParams();

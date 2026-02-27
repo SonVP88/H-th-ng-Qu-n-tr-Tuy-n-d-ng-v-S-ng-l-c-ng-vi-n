@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 export interface SendOfferLetterDto {
-    applicationId: string; // Changed from candidateId - this is the Application ID
+    applicationId: string;
     candidateName: string;
     candidateEmail: string;
     position: string;

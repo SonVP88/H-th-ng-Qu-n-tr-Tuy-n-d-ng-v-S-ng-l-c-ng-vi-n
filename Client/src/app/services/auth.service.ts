@@ -15,7 +15,6 @@ export class AuthService {
     constructor(private router: Router, private http: HttpClient) { }
 
     isAuthenticated(): boolean {
-        // ⚡ SSR Fix: Only access localStorage in browser
         if (!isPlatformBrowser(this.platformId)) return false;
         if (typeof window === 'undefined') return false;
 
@@ -25,7 +24,6 @@ export class AuthService {
 
 
     getCurrentUser(): any {
-        // ⚡ SSR Fix: Only access localStorage in browser
         if (!isPlatformBrowser(this.platformId)) return null;
         if (typeof window === 'undefined') return null;
 
@@ -52,7 +50,6 @@ export class AuthService {
     }
 
     logout(): void {
-        // ⚡ SSR Fix: Only access localStorage in browser
         if (isPlatformBrowser(this.platformId) && typeof window !== 'undefined') {
             console.log('🚪 Đăng xuất - Xóa token khỏi localStorage');
             localStorage.removeItem('authToken');
@@ -67,7 +64,6 @@ export class AuthService {
     }
 
     saveToken(token: string): boolean {
-        // ⚡ SSR Fix: Only access localStorage in browser
         if (!isPlatformBrowser(this.platformId)) {
             console.warn(' SSR: Cannot save token on server side');
             return false;
@@ -84,7 +80,7 @@ export class AuthService {
         }
     }
 
-    // New method for Change Password
+
     changePassword(data: any): Observable<any> {
         return this.http.post(`${environment.apiUrl}/auth/change-password`, data);
     }

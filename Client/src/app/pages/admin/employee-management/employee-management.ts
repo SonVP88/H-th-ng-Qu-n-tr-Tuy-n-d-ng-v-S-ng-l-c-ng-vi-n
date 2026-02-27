@@ -63,9 +63,9 @@ export class EmployeeManagement implements OnInit {
    */
   private initForm(): void {
     this.employeeForm = this.fb.group({
-      fullName: ['', [Validators.required]],
+      fullName: ['', [Validators.required, Validators.minLength(2)]],
       email: ['', [Validators.required, Validators.email]],
-      phoneNumber: ['', [Validators.required]],
+      phoneNumber: ['', [Validators.required, Validators.pattern(/(84|0[3|5|7|8|9])+([0-9]{8})\b/)]],
       role: ['HR', [Validators.required]]
     });
   }
@@ -123,6 +123,7 @@ export class EmployeeManagement implements OnInit {
       Object.keys(this.employeeForm.controls).forEach(key => {
         this.employeeForm.get(key)?.markAsTouched();
       });
+      this.toast.warning('Thiếu thông tin', 'Vui lòng kiểm tra và điền đầy đủ các thông tin bắt buộc');
       return;
     }
 
@@ -192,6 +193,14 @@ export class EmployeeManagement implements OnInit {
 
     if (field?.hasError('email')) {
       return 'Email không hợp lệ';
+    }
+
+    if (field?.hasError('pattern') && fieldName === 'phoneNumber') {
+      return 'Số điện thoại không hợp lệ (VD: 0987654321)';
+    }
+
+    if (field?.hasError('minlength')) {
+      return `Tên phải dài ít nhất ${field.errors?.['minlength'].requiredLength} ký tự`;
     }
 
     return '';
@@ -275,6 +284,7 @@ export class EmployeeManagement implements OnInit {
       Object.keys(this.employeeForm.controls).forEach(key => {
         this.employeeForm.get(key)?.markAsTouched();
       });
+      this.toast.warning('Thiếu thông tin', 'Vui lòng điền đúng và đủ thông tin nhân viên');
       return;
     }
 

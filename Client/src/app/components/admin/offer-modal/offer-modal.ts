@@ -131,7 +131,7 @@ export class OfferModalComponent {
             startDate: '',
             expiryDate: '',
             contractType: '',
-            ccInterviewer: true, // Default ON
+            ccInterviewer: true, 
             additionalCcEmails: ''
         };
     }

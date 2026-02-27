@@ -26,12 +26,11 @@ export interface InterviewState {
   imports: [CommonModule, RouterModule, FormsModule],
   templateUrl: './my-interviews.html',
   styleUrl: './my-interviews.scss',
-  // changeDetection: ChangeDetectionStrategy.OnPush //  Tạm thời tắt OnPush để fix UI issues
 })
 export class MyInterviews implements OnInit {
   interviews: MyInterviewDto[] = [];
   allInterviews: MyInterviewDto[] = [];
-  paginatedInterviews: MyInterviewDto[] = []; // 📄 Pagination: Displayed items
+  paginatedInterviews: MyInterviewDto[] = [];
 
   filterType: 'upcoming' | 'history' = 'upcoming';
   isLoading = true;
@@ -39,23 +38,18 @@ export class MyInterviews implements OnInit {
 
   private toast = inject(ToastService);
 
-  // 📄 Pagination Configuration
   currentPage = 1;
   itemsPerPage = 5;
   totalPages = 1;
   totalItems = 0;
   pagesArray: number[] = [];
 
-  // 🎨 Evaluation Modal State
+
   isEvaluationModalOpen = false;
   selectedInterview: MyInterviewDto | null = null;
   isSubmitting = false;
-  isReadOnly = false; // 🔒 Read-only mode for viewing history
+  isReadOnly = false; 
 
-  // ... (evaluationForm remains the same)
-
-
-  // 📝 Evaluation Form Model
   evaluationForm = {
     technicalSkills: 0,    // 1-5 stars
     communication: 0,      // 1-5 stars
@@ -68,13 +62,11 @@ export class MyInterviews implements OnInit {
     isBelated: false
   };
 
-
-  // 🚀 Performance: Cache interview states
   private interviewStateCache = new Map<string, InterviewState>();
 
-  private platformId = inject(PLATFORM_ID); // ⚡ SSR Fix
+  private platformId = inject(PLATFORM_ID); 
 
-  protected Math = Math; // 🔢 Expose Math for HTML template
+  protected Math = Math; 
 
   constructor(
     private interviewService: InterviewService,
@@ -84,7 +76,6 @@ export class MyInterviews implements OnInit {
   ) { }
 
   ngOnInit(): void {
-    // ⚡ SSR Fix: Only load data on client side
     if (isPlatformBrowser(this.platformId)) {
       this.loadMyInterviews();
     }
@@ -96,15 +87,14 @@ export class MyInterviews implements OnInit {
   loadMyInterviews(): void {
     this.isLoading = true;
     this.errorMessage = '';
-    this.cdr.markForCheck(); // ⚡ Trigger check for loading state
+    this.cdr.markForCheck(); 
 
     this.interviewService.getMyInterviews().subscribe({
       next: (response) => {
         if (response.success) {
           this.allInterviews = response.data;
-          this.isLoading = false; // ⚡ Set before applyFilter
+          this.isLoading = false; 
 
-          //  DEBUG: Log status of loaded interviews
           console.log(' Loaded interviews (Raw):', this.allInterviews.map(i => ({ id: i.interviewId, status: i.status })));
 
           this.applyFilter();
@@ -112,8 +102,8 @@ export class MyInterviews implements OnInit {
           this.errorMessage = response.message || 'Không thể tải lịch phỏng vấn';
           this.isLoading = false;
         }
-        this.cdr.markForCheck(); // ⚡ Mark for check before detect
-        this.cdr.detectChanges(); // ⚡ Force update
+        this.cdr.markForCheck(); 
+        this.cdr.detectChanges(); 
       },
       error: (error) => {
         console.error(' Error loading interviews:', error);
@@ -130,16 +120,16 @@ export class MyInterviews implements OnInit {
    */
   setFilter(type: 'upcoming' | 'history'): void {
     this.filterType = type;
-    this.currentPage = 1; // Reset to page 1
+    this.currentPage = 1; 
     this.applyFilter();
-    this.cdr.detectChanges(); // ⚡ Force UI update immediately
+    this.cdr.detectChanges();
   }
 
   /**
    * Áp dụng filter vào danh sách
    */
   applyFilter(): void {
-    // Clear cache when filtering
+
     this.interviewStateCache.clear();
 
     if (this.filterType === 'upcoming') {
@@ -149,21 +139,19 @@ export class MyInterviews implements OnInit {
         return state.statusType !== 'completed';
       });
     } else {
-      // Lọc: Đã hoàn thành (có feedback)
       this.interviews = this.allInterviews.filter(interview => {
         const state = this.getInterviewState(interview);
         return state.statusType === 'completed';
       });
     }
 
-    // 📄 Update Pagination
     this.totalItems = this.interviews.length;
     this.totalPages = Math.ceil(this.totalItems / this.itemsPerPage);
     if (this.totalPages === 0) this.totalPages = 1;
     this.pagesArray = Array.from({ length: this.totalPages }, (_, i) => i + 1);
 
     this.updatePagination();
-    this.cdr.detectChanges(); // ⚡ Force UI update after filtering
+    this.cdr.detectChanges(); 
   }
 
   /**
@@ -202,8 +190,7 @@ export class MyInterviews implements OnInit {
   }
 
   /**
-   * 🎯 CORE LOGIC: Tính toán trạng thái UI cho từng interview
-   * 🚀 OPTIMIZED: Caches results to avoid repeated calculations
+   * CORE LOGIC: Tính toán trạng thái UI cho từng interview
    * 
    * Business Rules (Updated - Calendar Date based):
    * 1. COMPLETED: hasFeedback = true → Đã xong
@@ -212,7 +199,6 @@ export class MyInterviews implements OnInit {
    * 4. UPCOMING: scheduledDate > today (tương lai) → Sắp tới
    */
   getInterviewState(interview: MyInterviewDto): InterviewState {
-    // Check cache first
     const cached = this.interviewStateCache.get(interview.interviewId);
     if (cached) {
       return cached;
@@ -220,11 +206,9 @@ export class MyInterviews implements OnInit {
     const now = new Date();
     const scheduledTime = new Date(interview.interviewTime);
 
-    // 🛡️ Robust Check: Normalize status to lower case for comparison
     const normalizedStatus = (interview.status || '').toLowerCase();
     const hasFeedback = normalizedStatus === 'completed';
 
-    // Helper: So sánh 2 dates theo Calendar Date (bỏ qua giờ phút)
     const isSameDay = (d1: Date, d2: Date): boolean => {
       return d1.getFullYear() === d2.getFullYear() &&
         d1.getMonth() === d2.getMonth() &&
@@ -254,7 +238,7 @@ export class MyInterviews implements OnInit {
         badgeLabel: 'Hoàn thành',
         buttonText: 'Xem lại',
         buttonClass: 'px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm',
-        isButtonDisabled: false, //  Enable button for viewing
+        isButtonDisabled: false,
         isOverdue: false,
         statusType: 'completed'
       };
@@ -308,7 +292,6 @@ export class MyInterviews implements OnInit {
       return state;
     }
 
-    // Fallback (không nên xảy ra)
     const fallbackState: InterviewState = {
       badgeClass: 'px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-200',
       badgeLabel: 'Không xác định',
@@ -319,7 +302,6 @@ export class MyInterviews implements OnInit {
       statusType: 'upcoming'
     };
 
-    // Cache before returning
     this.interviewStateCache.set(interview.interviewId, fallbackState);
     return fallbackState;
   }
@@ -375,14 +357,12 @@ export class MyInterviews implements OnInit {
   handleInterviewAction(interview: MyInterviewDto): void {
     const state = this.getInterviewState(interview);
 
-    // Debug log
     console.log(' handleInterviewAction called', {
       interviewId: interview.interviewId,
       statusType: state.statusType,
       isDisabled: state.isButtonDisabled
     });
 
-    // Nếu button bị disabled thì không làm gì
     if (state.isButtonDisabled) {
       console.log(' Button is disabled, ignoring click');
       return;
@@ -422,7 +402,7 @@ export class MyInterviews implements OnInit {
    * Reset evaluation form
    */
   resetEvaluationForm(): void {
-    this.isReadOnly = false; // Reset read-only state
+    this.isReadOnly = false;
     this.evaluationForm = {
       technicalSkills: 0,
       communication: 0,
@@ -455,7 +435,6 @@ export class MyInterviews implements OnInit {
       this.evaluationForm.attitude +
       this.evaluationForm.experience;
 
-    // Convert 20-point scale (4 criteria × 5 stars) to 100-point scale
     this.evaluationForm.overallScore = Math.round((sum / 20) * 100);
   }
 
@@ -476,32 +455,25 @@ export class MyInterviews implements OnInit {
   viewEvaluation(interview: MyInterviewDto): void {
     if (!interview.interviewId) return;
 
-    //  Không set this.isLoading = true vì nó sẽ che toàn bộ trang
     this.evaluationService.getEvaluation(interview.interviewId).subscribe({
       next: (response) => {
         if (response.success && response.data) {
           const data = response.data;
 
-          // Open Modal
           this.selectedInterview = interview;
           this.isEvaluationModalOpen = true;
-          this.isReadOnly = true; // 🔒 Set Read-only mode
+          this.isReadOnly = true;
 
-          // ⚡ Force modal to open immediately
           this.cdr.detectChanges();
 
-          // Parse JSON details
           let details: any[] = [];
           try {
-            console.log('📥 Raw Details JSON:', data.details); //  DEBUG LOG
+            console.log('📥 Raw Details JSON:', data.details);
             details = data.details ? JSON.parse(data.details) : [];
-            console.log(' Parsed Details Array:', details); //  DEBUG LOG
+            console.log(' Parsed Details Array:', details);
           } catch (e) {
             console.error(' Error parsing evaluation details:', e);
           }
-
-          // Populate form (Handle both Title Case and Camel Case just in case)
-          // details structure: { criterion: "...", score: ... }
           const getScore = (name: string) => {
             const item = details.find((d: any) =>
               (d.Criterion || d.criterion) === name ||
@@ -522,11 +494,8 @@ export class MyInterviews implements OnInit {
             isBelated: data.isBelated || false
           };
 
-          console.log('📝 Populated Form:', this.evaluationForm); //  DEBUG LOG
-
           this.cdr.markForCheck();
         } else {
-          // Show error if not found
           this.toast.error('Lỗi', 'Không tìm thấy chi tiết đánh giá');
         }
       },
@@ -574,13 +543,11 @@ export class MyInterviews implements OnInit {
     this.isSubmitting = true;
 
     try {
-      // Get current user ID from auth service
       const currentUser = this.authService.getCurrentUser();
       if (!currentUser || !currentUser.userId) {
         throw new Error('User not authenticated');
       }
 
-      // Prepare evaluation details as JSON
       const details: EvaluationDetail[] = [
         { criterion: 'Kỹ năng chuyên môn', score: this.evaluationForm.technicalSkills, maxScore: 5 },
         { criterion: 'Kỹ năng giao tiếp', score: this.evaluationForm.communication, maxScore: 5 },
@@ -610,16 +577,12 @@ export class MyInterviews implements OnInit {
         this.interviewStateCache.delete(this.selectedInterview.interviewId);
       }
 
-      // Close modal
       this.closeEvaluationModal();
 
-      // Re-apply filter to move item to 'History' or update status UI
       this.applyFilter();
 
-      // Sync with server in background
       this.loadMyInterviews();
 
-      // TODO: Show success notification
       this.toast.success('Đã gửi đánh giá', 'Đánh giá phỏng vấn đã được lưu thành công!');
     } catch (error) {
       console.error(' Error submitting evaluation:', error);

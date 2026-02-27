@@ -19,7 +19,6 @@ type Tab = 'security' | 'notifications';
 export class CandidateSettingsComponent implements OnInit {
     activeTab: Tab = 'security';
 
-    // ─── Password ─────────────────────────────────────────────────────────────
     currentPassword = '';
     newPassword = '';
     confirmPassword = '';
@@ -31,7 +30,6 @@ export class CandidateSettingsComponent implements OnInit {
     pwdMsg$ = this.pwdMsgSubject.asObservable();
     pwdLoading = false;
 
-    // ─── Notifications ────────────────────────────────────────────────────────
     private notifSubject = new BehaviorSubject<NotificationSettings | null>(null);
     notif$ = this.notifSubject.asObservable();
 
@@ -52,7 +50,6 @@ export class CandidateSettingsComponent implements OnInit {
         this.activeTab = tab;
     }
 
-    // ─── Password ─────────────────────────────────────────────────────────────
     changePassword(): void {
         this.pwdMsgSubject.next(null);
         if (!this.currentPassword || !this.newPassword || !this.confirmPassword) {
@@ -87,7 +84,6 @@ export class CandidateSettingsComponent implements OnInit {
             });
     }
 
-    // ─── Notifications ────────────────────────────────────────────────────────
     loadNotificationSettings(): void {
         this.settingsService.getNotificationSettings().subscribe({
             next: (data) => this.notifSubject.next(data),

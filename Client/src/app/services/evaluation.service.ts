@@ -9,7 +9,7 @@ export interface EvaluationSubmitDto {
     score: number;
     comment: string;
     result: 'Passed' | 'Failed' | 'Consider';
-    details: string; // JSON string
+    details: string; 
     submittedByName?: string;
     isBelated?: boolean;
 }
@@ -34,9 +34,6 @@ export class EvaluationService {
 
     constructor(private http: HttpClient) { }
 
-    /**
-     * Submit evaluation for an interview
-     */
     submitEvaluation(dto: EvaluationSubmitDto): Observable<ApiResponse> {
         const token = localStorage.getItem('authToken');
         const headers = new HttpHeaders({
@@ -51,9 +48,6 @@ export class EvaluationService {
         );
     }
 
-    /**
-     * Get evaluation details by interview ID
-     */
     getEvaluation(interviewId: string): Observable<ApiResponse<EvaluationSubmitDto>> {
         const token = localStorage.getItem('authToken');
         const headers = new HttpHeaders({

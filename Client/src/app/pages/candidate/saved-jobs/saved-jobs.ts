@@ -14,7 +14,6 @@ import { ToastService } from '../../../services/toast.service';
     styleUrl: './saved-jobs.scss'
 })
 export class SavedJobsComponent implements OnInit, OnDestroy {
-    // BehaviorSubject + async pipe = Angular-native, không cần detectChanges/NgZone
     private savedJobsSubject = new BehaviorSubject<SavedJobDto[] | null>(null);
     savedJobs$ = this.savedJobsSubject.asObservable();
 

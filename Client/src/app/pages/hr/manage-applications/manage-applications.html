@@ -167,7 +167,7 @@
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
-                    <tr *ngFor="let app of filteredApplications()" class="hover:bg-gray-50 transition-colors">
+                    <tr *ngFor="let app of paginatedApplications()" class="hover:bg-gray-50 transition-colors">
                         <!-- Candidate Info -->
                         <td class="px-6 py-4 whitespace-nowrap cursor-pointer" (click)="viewCandidateDetail(app)">
                             <div class="flex items-center">
@@ -306,6 +306,48 @@
                     </tr>
                 </tbody>
             </table>
+        </div>
+
+        <!-- Pagination -->
+        <div *ngIf="filteredApplications().length > 0"
+            class="flex flex-col md:flex-row items-center justify-between gap-4 p-4 border-t border-gray-100 bg-white">
+            <!-- Results info -->
+            <div class="text-sm text-gray-600">
+                Hiển thị
+                <span class="font-bold text-gray-900">{{ (currentPage - 1) * itemsPerPage + 1 }}</span>
+                đến
+                <span class="font-bold text-gray-900">{{ Math.min(currentPage * itemsPerPage,
+                    filteredApplications().length) }}</span>
+                trong tổng số
+                <span class="font-bold text-gray-900">{{ filteredApplications().length }}</span>
+                ứng viên
+            </div>
+
+            <!-- Page numbers -->
+            <nav class="flex items-center gap-1" *ngIf="totalPages() > 1">
+                <!-- Previous button -->
+                <button (click)="previousPage()" [disabled]="currentPage === 1"
+                    class="px-3 py-2 text-sm font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 text-gray-700">
+                    <span
+                        class="material-symbols-outlined text-[18px] leading-none text-center block mt-1">chevron_left</span>
+                </button>
+
+                <!-- Page numbers -->
+                <button *ngFor="let page of getPageNumbers()" (click)="page > 0 ? changePage(page) : null"
+                    [disabled]="page === -1" [class.bg-blue-600]="page === currentPage"
+                    [class.text-white]="page === currentPage"
+                    [class.hover:bg-gray-100]="page !== currentPage && page > 0"
+                    class="min-w-[40px] px-3 py-2 text-sm font-bold rounded-lg transition-all disabled:cursor-default text-gray-700">
+                    {{ page > 0 ? page : '...' }}
+                </button>
+
+                <!-- Next button -->
+                <button (click)="nextPage()" [disabled]="currentPage === totalPages()"
+                    class="px-3 py-2 text-sm font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 text-gray-700">
+                    <span
+                        class="material-symbols-outlined text-[18px] leading-none text-center block mt-1">chevron_right</span>
+                </button>
+            </nav>
         </div>
     </div>
 
@@ -600,8 +642,8 @@
                         </div>
                         <button (click)="generateAIOpening()" [disabled]="isGeneratingAI"
                             class="px-4 py-2 bg-gradient-to-r from-yellow-400 to-amber-500 text-white rounded-lg hover:from-yellow-500 hover:to-amber-600 transition-all font-semibold text-sm flex items-center gap-2 shadow-md disabled:opacity-50 disabled:cursor-not-allowed">
-                            <span *ngIf="!isGeneratingAI">✨</span>
-                            <span *ngIf="isGeneratingAI" class="animate-spin">⏳</span>
+                            <span *ngIf="!isGeneratingAI"></span>
+                            <span *ngIf="isGeneratingAI" class="animate-spin"></span>
                             {{ isGeneratingAI ? 'Đang tạo...' : 'AI Personalize' }}
                         </button>
                     </div>
@@ -612,7 +654,7 @@
                             placeholder="Nội dung email sẽ được hiển thị ở đây..."
                             class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none font-mono text-sm leading-relaxed"></textarea>
                         <p class="text-xs text-gray-500 mt-2">
-                            💡 Bạn có thể chỉnh sửa nội dung email trước khi gửi. Bấm "✨ AI Personalize" để tạo đoạn mở
+                            Bạn có thể chỉnh sửa nội dung email trước khi gửi. Bấm " AI Personalize" để tạo đoạn mở
                             đầu cá nhân hóa.
                         </p>
                     </div>
@@ -707,7 +749,7 @@
                         [disabled]="isGeneratingRejectEmail || !hasSelectedReason()"
                         class="w-full py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all font-semibold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                         <span *ngIf="!isGeneratingRejectEmail"></span>
-                        <span *ngIf="isGeneratingRejectEmail" class="animate-spin">⏳</span>
+                        <span *ngIf="isGeneratingRejectEmail" class="animate-spin"></span>
                         {{ isGeneratingRejectEmail ? 'AI đang soạn email...' : 'Tạo Email nháp (AI Draft)' }}
                     </button>
                 </div>
