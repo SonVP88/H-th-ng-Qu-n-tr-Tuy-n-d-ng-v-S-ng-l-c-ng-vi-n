@@ -28,6 +28,14 @@ builder.Services.AddHostedService<JobExpirationService>();
 builder.Services.AddHttpClient<IAiMatchingService, AiMatchingService>();
 builder.Services.AddHttpClient(); // Cho MasterDataService
 
+// KẾ HOẠCH TỐI ƯU TỐC ĐỘ: Cấu hình HttpClient riêng cho Gemini 
+// Giới hạn Timeout 60s để tránh treo luồng hệ thống vĩnh viễn
+builder.Services.AddHttpClient("GeminiClient", client => {
+    client.Timeout = TimeSpan.FromSeconds(60);
+    // Tắt Header Expect: 100-continue để tối ưu hóa việc đẩy Stream cho Google
+    client.DefaultRequestHeaders.ExpectContinue = false;
+});
+
 // Đăng ký Memory Cache cho caching
 builder.Services.AddMemoryCache();
 

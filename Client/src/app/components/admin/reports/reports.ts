@@ -2,8 +2,9 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { BaseChartDirective } from 'ng2-charts';
-import { Chart, ChartConfiguration, ChartData, ChartType, registerables } from 'chart.js';
+import { Chart, ChartConfiguration, ChartData, registerables } from 'chart.js';
 import { ReportService, ReportDashboardDto, ReportChartsDto } from '../../../services/report.service';
+import { saveAs } from 'file-saver';
 
 // Register Chart.js components
 Chart.register(...registerables);
@@ -148,11 +149,10 @@ export class Reports implements OnInit {
   public trendChartType = 'line' as const;
 
   private cdr = inject(ChangeDetectorRef);
-  selectedYear = new Date().getFullYear(); // Năm hiện tại
+  selectedYear = new Date().getFullYear();
   years: number[] = [];
 
   constructor(private reportService: ReportService) {
-    // Generate years từ 2024 đến năm hiện tại
     const currentYear = new Date().getFullYear();
     for (let year = 2024; year <= currentYear; year++) {
       this.years.push(year);
@@ -163,78 +163,28 @@ export class Reports implements OnInit {
     this.loadReports();
   }
 
-  /**
-   * Handle year selection change
-   */
   onYearChange(event: any): void {
     this.selectedYear = parseInt(event.target.value);
     this.loadReports();
   }
 
-  /**
-   * Refresh reports data
-   */
   refreshReports(): void {
     this.loadReports();
   }
 
   /**
-   * Export reports to Excel (CSV format)
+   * Xuất Excel từ backend API - có native BarChart, PieChart, LineChart thật
    */
   exportToExcel(): void {
-    const csvData = this.generateCSV();
-    // Add UTF-8 BOM for Excel compatibility
-    const BOM = '\uFEFF';
-    const blob = new Blob([BOM + csvData], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-
-    link.setAttribute('href', url);
-    link.setAttribute('download', `Bao_Cao_Tuyen_Dung_${this.selectedYear}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }
-
-  /**
-   * Generate CSV content from report data
-   */
-  private generateCSV(): string {
-    let csv = 'Báo Cáo Tuyển Dụng ' + this.selectedYear + '\n\n';
-
-    // Summary section
-    csv += 'Tổng Quan\n';
-    csv += 'Chỉ số,Giá trị\n';
-    csv += `Tổng ứng viên,${this.summary.totalCandidates}\n`;
-    csv += `Đã tuyển,${this.summary.hiredCount}\n`;
-    csv += `Vị trí đang mở,${this.summary.openJobsCount}\n`;
-    csv += `Tỷ lệ tuyển dụng,${this.summary.conversionRate}%\n\n`;
-
-    // Funnel data
-    csv += 'Phễu Tuyển Dụng\n';
-    csv += 'Giai đoạn,Số lượng\n';
-    this.funnelChartData.labels?.forEach((label, i) => {
-      csv += `${label},${this.funnelChartData.datasets[0].data[i]}\n`;
+    this.reportService.exportExcel(this.selectedYear).subscribe({
+      next: (blob) => {
+        saveAs(blob, `Bao_Cao_Tuyen_Dung_${this.selectedYear}.xlsx`);
+      },
+      error: (err) => {
+        console.error('Lỗi xuất Excel:', err);
+        alert('Không thể xuất Excel. Vui lòng thử lại sau.');
+      }
     });
-    csv += '\n';
-
-    // Source data
-    csv += 'Nguồn Ứng Viên\n';
-    csv += 'Nguồn,Số lượng\n';
-    this.sourceChartData.labels?.forEach((label, i) => {
-      csv += `${label},${this.sourceChartData.datasets[0].data[i]}\n`;
-    });
-    csv += '\n';
-
-    // Trend data
-    csv += 'Xu Hướng Theo Tháng\n';
-    csv += 'Tháng,Số ứng tuyển\n';
-    this.trendChartData.labels?.forEach((label, i) => {
-      csv += `${label},${this.trendChartData.datasets[0].data[i]}\n`;
-    });
-
-    return csv;
   }
 
   /**
@@ -243,20 +193,17 @@ export class Reports implements OnInit {
   loadReports(): void {
     this.isLoading = true;
 
-    // Load both summary and charts in parallel with year filter
     const summary$ = this.reportService.getSummary(this.selectedYear);
     const charts$ = this.reportService.getCharts(this.selectedYear);
 
-    // Wait for both to complete
     summary$.subscribe({
       next: (data) => {
         this.summary = data;
         console.log('📊 Summary loaded:', data);
-        // Use setTimeout to avoid ExpressionChangedAfterItHasBeenCheckedError
         setTimeout(() => this.cdr.detectChanges(), 0);
       },
       error: (err) => {
-        console.error(' Error loading summary:', err);
+        console.error('Error loading summary:', err);
         this.isLoading = false;
         setTimeout(() => this.cdr.detectChanges(), 0);
       }
@@ -266,12 +213,11 @@ export class Reports implements OnInit {
       next: (data) => {
         this.updateCharts(data);
         console.log('📈 Charts loaded:', data);
-        this.isLoading = false; // Set to false after charts load
-        // Use setTimeout to avoid ExpressionChangedAfterItHasBeenCheckedError
+        this.isLoading = false;
         setTimeout(() => this.cdr.detectChanges(), 0);
       },
       error: (err) => {
-        console.error(' Error loading charts:', err);
+        console.error('Error loading charts:', err);
         this.isLoading = false;
         setTimeout(() => this.cdr.detectChanges(), 0);
       }
@@ -282,37 +228,21 @@ export class Reports implements OnInit {
    * Update chart data from API response
    */
   private updateCharts(data: ReportChartsDto): void {
-    console.log(' updateCharts called with:', data);
-
     try {
-      // Update Funnel Chart
       if (data?.funnelData?.labels && data?.funnelData?.data) {
         this.funnelChartData.labels = data.funnelData.labels;
         this.funnelChartData.datasets[0].data = data.funnelData.data;
-        console.log(' Funnel chart updated');
-      } else {
-        console.warn(' Funnel data is incomplete:', data?.funnelData);
       }
-
-      // Update Source Chart
       if (data?.sourceData?.labels && data?.sourceData?.data) {
         this.sourceChartData.labels = data.sourceData.labels;
         this.sourceChartData.datasets[0].data = data.sourceData.data;
-        console.log(' Source chart updated');
-      } else {
-        console.warn(' Source data is incomplete:', data?.sourceData);
       }
-
-      // Update Trend Chart
       if (data?.trendData?.labels && data?.trendData?.data) {
         this.trendChartData.labels = data.trendData.labels;
         this.trendChartData.datasets[0].data = data.trendData.data;
-        console.log(' Trend chart updated');
-      } else {
-        console.warn(' Trend data is incomplete:', data?.trendData);
       }
     } catch (error) {
-      console.error(' Error updating charts:', error);
+      console.error('Error updating charts:', error);
     }
   }
 }

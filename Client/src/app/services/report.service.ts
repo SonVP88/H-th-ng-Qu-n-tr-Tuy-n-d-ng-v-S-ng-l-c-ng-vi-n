@@ -47,4 +47,14 @@ export class ReportService {
         }
         return this.http.get<ReportChartsDto>(`${this.apiUrl}/charts`);
     }
+    /**
+     * Xuất báo cáo Excel từ backend (có native chart thật)
+     */
+    exportExcel(year?: number): Observable<Blob> {
+        const params: any = year ? { year: year.toString() } : {};
+        return this.http.get(`${this.apiUrl}/export-excel`, {
+            params,
+            responseType: 'blob'
+        });
+    }
 }

@@ -11,6 +11,11 @@ namespace UTC_DATN.Services.Interfaces
         Task<CandidateProfileDto?> GetProfileAsync(Guid userId);
 
         /// <summary>
+        /// Lấy profile ứng viên theo CandidateId (dùng cho HR/Admin)
+        /// </summary>
+        Task<CandidateProfileDto?> GetProfileByCandidateIdAsync(Guid candidateId);
+
+        /// <summary>
         /// Cập nhật thông tin profile và skills
         /// </summary>
         Task<bool> UpdateProfileAsync(Guid userId, UpdateCandidateProfileDto dto);

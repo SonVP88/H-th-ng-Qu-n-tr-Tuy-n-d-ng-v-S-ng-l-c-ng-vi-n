@@ -476,7 +476,7 @@ public class ApplicationService : IApplicationService
         return result;
     }
 
-    public async Task<UpdateApplicationStatusResponse?> UpdateStatusAsync(Guid applicationId, string newStatus)
+    public async Task<UpdateApplicationStatusResponse?> UpdateStatusAsync(Guid applicationId, string newStatus, bool isHrAction = true)
     {
         var application = await _context.Applications
             .Include(a => a.Candidate)
@@ -562,8 +562,17 @@ public class ApplicationService : IApplicationService
                         notifType = "OFFER";
                         break;
                     case "REJECTED":
-                        notifTitle = "Thông báo kết quả ứng tuyển";
-                        notifMessage = $"Cảm ơn bạn đã quan tâm đến vị trí {application.Job?.Title}. Rất tiếc hiện tại hồ sơ của bạn chưa phù hợp.";
+                        // Phân biệt HR từ chối vs Candidate từ chối offer
+                        if (isHrAction)
+                        {
+                            notifTitle = "Thông báo kết quả ứng tuyển";
+                            notifMessage = $"Cảm ơn bạn đã quan tâm đến vị trí {application.Job?.Title}. Rất tiếc hiện tại hồ sơ của bạn chưa phù hợp.";
+                        }
+                        else
+                        {
+                            notifTitle = "Bạn đã từ chối Offer";
+                            notifMessage = $"Chúng tôi đã ghi nhận việc bạn từ chối Offer cho vị trí \"{application.Job?.Title}\". Cảm ơn bạn đã dành thời gian, chúc bạn sớm tìm được công việc phù hợp!";
+                        }
                         break;
                     case "Pending_Offer":
                         notifTitle = "Cập nhật trạng thái ứng tuyển";
@@ -607,16 +616,13 @@ public class ApplicationService : IApplicationService
             }
         }
 
-        // 9. THÔNG BÁO NGƯỢC LẠI CHO HR khi ứng viên phản hồi Offer (hoặc HR tự update HIRED)
-        if (saveResult && (newStatus == "HIRED" || newStatus == "REJECTED"))
+        // 9. THÔNG BÁO NGƯỢC LẠI CHO HR - CHỈ KHI CANDIDATE TỰ PHẢN HỒI OFFER (không gửi khi HR tự reject)
+        if (saveResult && !isHrAction && (newStatus == "HIRED" || newStatus == "REJECTED"))
         {
-            _logger.LogInformation("[DEBUG] Block 9 triggered. oldStatus={Old}, newStatus={New}", oldStatus, newStatus);
+            _logger.LogInformation("[DEBUG] Block 9 triggered (candidate action). oldStatus={Old}, newStatus={New}", oldStatus, newStatus);
             try
             {
                 var hrUser = application.Job?.CreatedByNavigation;
-                _logger.LogInformation("[DEBUG] hrUser={HR}, hrUserId={Id}",
-                    hrUser?.FullName ?? "NULL",
-                    hrUser?.UserId.ToString() ?? "NULL");
 
                 if (hrUser != null)
                 {
@@ -642,11 +648,7 @@ public class ApplicationService : IApplicationService
                         "OFFER",
                         application.ApplicationId.ToString()
                     );
-                    _logger.LogInformation("[SUCCESS] Đã gửi thông báo HR UserId: {UserId}", hrUser.UserId);
-                }
-                else
-                {
-                    _logger.LogWarning("[WARN] hrUser NULL - Job.CreatedByNavigation không được load hoặc Job null.");
+                    _logger.LogInformation("[SUCCESS] Đã thông báo cho HR về phản hồi của candidate. HR UserId: {UserId}", hrUser.UserId);
                 }
             }
             catch (Exception hrNotifEx)
@@ -663,7 +665,7 @@ public class ApplicationService : IApplicationService
                 .CountAsync(a => a.JobId == application.JobId && a.Status == "HIRED");
         }
 
-        // --- Thông báo cho HR khi đã tuyển đủ vị trí (để HR quyết định có đóng job không) ---
+        // --- Thông báo và TỰ ĐỘNG ĐÓNG JOB khi đã tuyển đủ vị trí ---
         if (newStatus == "HIRED"
             && application.Job != null
             && application.Job.NumberOfPositions.HasValue
@@ -672,22 +674,30 @@ public class ApplicationService : IApplicationService
         {
             try
             {
+                // Tự động đóng Job
+                application.Job.Status = "CLOSED";
+                application.Job.ClosedAt = DateTime.UtcNow;
+                application.Job.UpdatedAt = DateTime.UtcNow;
+                
+                await _context.SaveChangesAsync();
+                _logger.LogInformation(" Đã TỰ ĐỘNG ĐÓNG Job {JobId} vì đã tuyển đủ {Hired}/{Pos}", application.JobId, totalHired, application.Job.NumberOfPositions.Value);
+
                 var hrUser = application.Job.CreatedByNavigation;
                 if (hrUser?.UserId != null)
                 {
                     await _notificationService.CreateNotificationAsync(
                         hrUser.UserId,
-                        $"Đã tuyển đủ vị trí cho \"{application.Job.Title}\"",
-                        $"Job \"{application.Job.Title}\" đã tuyển đủ {totalHired}/{application.Job.NumberOfPositions.Value} vị trí. Bạn có muốn đóng tin tuyển dụng này không?",
+                        $"Đã tự động đóng tin tuyển dụng \"{application.Job.Title}\"",
+                        $"Job \"{application.Job.Title}\" đã tuyển đủ {totalHired}/{application.Job.NumberOfPositions.Value} vị trí và đã được hệ thống tự động đóng lại.",
                         "APPLICATION_UPDATE",
                         application.JobId.ToString()
                     );
-                    _logger.LogInformation("🔔 Đã thông báo cho HR về job đủ vị trí: {JobId}", application.JobId);
+                    _logger.LogInformation("🔔 Đã thông báo cho HR về job đủ vị trí (auto-closed): {JobId}", application.JobId);
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, " Không thể gửi thông báo đủ vị trí cho HR.");
+                _logger.LogWarning(ex, " Lỗi khi tự động đóng job hoặc gửi thông báo cho HR.");
             }
         }
 

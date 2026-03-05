@@ -27,7 +27,7 @@ export class EmployeeManagement implements OnInit {
 
   // Pagination
   currentPage = signal(1);
-  itemsPerPage = 5;
+  itemsPerPage = 10;
 
   // Edit employee
   selectedEmployee = signal<EmployeeDto | null>(null);
@@ -39,11 +39,11 @@ export class EmployeeManagement implements OnInit {
   Math = Math;
 
   // Computed properties for pagination
-  totalPages = (): number => Math.ceil(this.employees().length / this.itemsPerPage);
+  totalPages = (): number => Math.ceil(this.filteredEmployees().length / this.itemsPerPage);
 
   paginatedEmployees = (): EmployeeDto[] => {
     const start = (this.currentPage() - 1) * this.itemsPerPage;
-    return this.employees().slice(start, start + this.itemsPerPage);
+    return this.filteredEmployees().slice(start, start + this.itemsPerPage);
   };
 
   // Search & Filter
@@ -474,6 +474,7 @@ export class EmployeeManagement implements OnInit {
    * Triggered when search input changes
    */
   onSearchChange(): void {
+    this.currentPage.set(1);
     this.cdr.detectChanges();
   }
 
@@ -481,6 +482,7 @@ export class EmployeeManagement implements OnInit {
    * Apply filters
    */
   applyFilters(): void {
+    this.currentPage.set(1);
     this.cdr.detectChanges();
   }
 
@@ -491,6 +493,7 @@ export class EmployeeManagement implements OnInit {
     this.searchQuery = '';
     this.filterRole = '';
     this.filterStatus = '';
+    this.currentPage.set(1);
     this.cdr.detectChanges();
   }
 

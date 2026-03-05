@@ -54,24 +54,24 @@ export const routes: Routes = [
   },
   {
     path: 'hr', // Đường dẫn gốc là /hr
-    component: HrLayout, // Sử dụng Layout chung (Sidebar + Header)
+    component: HrLayout, // Sử dụng Layout chung 
     children: [
       // Link: /hr/dashboard
       { path: 'dashboard', component: Dashboard },
 
-      // Hoạt động gần đây (Audit Log)
+      // Hoạt động gần đây 
       {
         path: 'activities',
         loadComponent: () => import('./pages/hr/recent-activities/recent-activities').then(m => m.RecentActivitiesComponent)
       },
 
-      // Quản lý việc làm - Job List (New)
+      // Quản lý việc làm - Job List 
       {
         path: 'jobs',
         loadComponent: () => import('./pages/hr/job-list/job-list').then(m => m.JobListComponent)
       },
 
-      // Link: /hr/post-job (Khớp với logic chuyển trang khi Login)
+      // Link: /hr/post-job 
       {
         path: 'post-job',
         component: PostJob
@@ -108,7 +108,7 @@ export const routes: Routes = [
         data: { roles: ['INTERVIEWER', 'HR', 'ADMIN'] }
       },
 
-      // Quản lý nhân viên (Chỉ ADMIN)
+      // Quản lý nhân viên 
       {
         path: 'employees',
         component: EmployeeManagement,
@@ -116,7 +116,7 @@ export const routes: Routes = [
         data: { roles: ['ADMIN'] }
       },
 
-      // Quản lý kỹ năng (Chỉ ADMIN)
+      // Quản lý kỹ năng 
       {
         path: 'skills',
         loadComponent: () => import('./pages/admin/skill-management/skill-management').then(m => m.SkillManagementComponent),

@@ -120,6 +120,55 @@ namespace UTC_DATN.Services.Implements
             };
         }
 
+        /// <summary>
+        /// Lấy profile ứng viên theo CandidateId (dùng cho HR/Admin xem chi tiết ứng viên)
+        /// </summary>
+        public async Task<CandidateProfileDto?> GetProfileByCandidateIdAsync(Guid candidateId)
+        {
+            var candidate = await _context.Candidates
+                .AsNoTracking()
+                .Include(c => c.CandidateSkills)
+                    .ThenInclude(cs => cs.Skill)
+                .Include(c => c.CandidateDocuments)
+                    .ThenInclude(cd => cd.File)
+                .FirstOrDefaultAsync(c => c.CandidateId == candidateId && !c.IsDeleted);
+
+            if (candidate == null) return null;
+
+            return new CandidateProfileDto
+            {
+                CandidateId = candidate.CandidateId,
+                FullName = candidate.FullName,
+                Email = candidate.Email,
+                Phone = candidate.Phone,
+                Location = candidate.Location,
+                Headline = candidate.Headline,
+                Summary = candidate.Summary,
+                LinkedIn = candidate.LinkedIn,
+                GitHub = candidate.GitHub,
+                Avatar = candidate.Avatar,
+                Skills = candidate.CandidateSkills.Select(cs => new CandidateSkillDto
+                {
+                    SkillId = cs.SkillId,
+                    SkillName = cs.Skill?.Name ?? "",
+                    Level = cs.Level,
+                    Years = cs.Years
+                }).ToList(),
+                Documents = candidate.CandidateDocuments.Select(cd => new CandidateDocumentDto
+                {
+                    DocumentId = cd.CandidateDocumentId,
+                    FileName = cd.File?.OriginalFileName ?? "",
+                    FileUrl = cd.File?.Url ?? "",
+                    DocType = cd.DocType,
+                    SizeBytes = cd.File?.SizeBytes,
+                    CreatedAt = cd.CreatedAt,
+                    IsPrimary = cd.IsPrimary,
+                    DisplayName = !string.IsNullOrWhiteSpace(cd.DisplayName) ? cd.DisplayName : (cd.File?.OriginalFileName ?? "")
+                }).ToList()
+            };
+        }
+
+
         public async Task<bool> UpdateProfileAsync(Guid userId, UpdateCandidateProfileDto dto)
         {
             var candidate = await _context.Candidates

@@ -201,7 +201,9 @@ public class ApplicationController : ControllerBase
                 return BadRequest(new { success = false, message = "Tham số 'accept' phải là true hoặc false." });
 
             var newStatus = isAccepted ? "HIRED" : "REJECTED";
-            var result = await _applicationService.UpdateStatusAsync(id, newStatus);
+            // isHrAction = false -> candidate tự phản hồi -> trigger notification đúng
+            var result = await _applicationService.UpdateStatusAsync(id, newStatus, isHrAction: false);
+
 
             if (result != null && result.Success)
             {

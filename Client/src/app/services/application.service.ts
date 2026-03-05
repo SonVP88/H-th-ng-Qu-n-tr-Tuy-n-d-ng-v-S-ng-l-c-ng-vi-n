@@ -34,6 +34,41 @@ export interface ApiResponse<T> {
     message?: string;
 }
 
+export interface CandidateSkillDto {
+    skillId: string;
+    skillName: string;
+    level?: string;
+    years?: number;
+}
+
+export interface CandidateDocumentDto {
+    documentId: string;
+    fileName: string;
+    fileUrl: string;
+    docType: string;
+    sizeBytes?: number;
+    createdAt: string;
+    isPrimary: boolean;
+    displayName: string;
+}
+
+export interface CandidateProfileDto {
+    candidateId: string;
+    fullName: string;
+    email: string;
+    phone?: string;
+    location?: string;
+    headline?: string;
+    summary?: string;
+    linkedIn?: string;
+    gitHub?: string;
+    avatar?: string;
+    skills: CandidateSkillDto[];
+    documents: CandidateDocumentDto[];
+}
+
+
+
 @Injectable({
     providedIn: 'root'
 })
@@ -78,5 +113,12 @@ export class ApplicationService {
             `${this.apiUrl}/applications/${applicationId}/respond-offer?accept=${accept}`,
             {}
         );
+    }
+
+    /**
+     * HR/Admin lấy profile ứng viên theo candidateId
+     */
+    getCandidateProfile(candidateId: string): Observable<CandidateProfileDto> {
+        return this.http.get<CandidateProfileDto>(`${this.apiUrl}/candidate/profile/${candidateId}`);
     }
 }

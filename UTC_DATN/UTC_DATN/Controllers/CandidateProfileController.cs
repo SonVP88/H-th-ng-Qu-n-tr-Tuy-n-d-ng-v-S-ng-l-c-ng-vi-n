@@ -63,6 +63,27 @@ namespace UTC_DATN.Controllers
         }
 
         /// <summary>
+        /// GET /api/candidate/profile/{candidateId} - HR/Admin xem profile ứng viên theo CandidateId
+        /// </summary>
+        [HttpGet("profile/{candidateId:guid}")]
+        [Authorize(Roles = "HR, ADMIN")]
+        public async Task<IActionResult> GetProfileByCandidateId(Guid candidateId)
+        {
+            try
+            {
+                var profile = await _profileService.GetProfileByCandidateIdAsync(candidateId);
+                if (profile == null)
+                    return NotFound(new { message = "Không tìm thấy hồ sơ ứng viên" });
+                return Ok(profile);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi hệ thống", error = ex.Message });
+            }
+        }
+
+
+        /// <summary>
         /// PUT /api/candidate/profile - Cập nhật thông tin profile
         /// </summary>
         [HttpPut("profile")]
