@@ -45,6 +45,20 @@ export interface NotificationSettingDto {
     channelPush: boolean;
 }
 
+export interface CandidateDto {
+    userId: string;
+    email: string;
+    fullName: string;
+    phone: string;
+    avatarUrl: string;
+    isActive: boolean;
+    authProvider: string;
+    createdAt: string;
+    lockedAt?: string;
+    lockedByName?: string;
+    lockReason?: string;
+}
+
 @Injectable({
     providedIn: 'root'
 })
@@ -76,5 +90,15 @@ export class AccountService {
 
     updateNotificationSettings(data: NotificationSettingDto): Observable<any> {
         return this.http.put(this.notifUrl, data);
+    }
+
+    getCandidates(searchTerm: string = '', pageConfig: number = 1, pageSize: number = 10): Observable<{ data: CandidateDto[], total: number, page: number, pageSize: number }> {
+        return this.http.get<{ data: CandidateDto[], total: number, page: number, pageSize: number }>(
+            `${this.apiUrl}/candidates?searchTerm=${searchTerm}&pageConfig=${pageConfig}&pageSize=${pageSize}`
+        );
+    }
+
+    toggleCandidateStatus(id: string, reason: string = ''): Observable<{ message: string, isActive: boolean }> {
+        return this.http.put<{ message: string, isActive: boolean }>(`${this.apiUrl}/candidates/${id}/toggle-status`, { reason });
     }
 }

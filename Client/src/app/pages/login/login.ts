@@ -103,7 +103,10 @@ export class Login implements AfterViewInit {
       },
       error: (err) => {
         const code = err.error?.errorCode;
-        if (code === 'EMAIL_REGISTERED_LOCALLY') {
+        if (err.status === 403 && err.error?.message) {
+          // Bắt lỗi 403 (Tài khoản bị khóa) khi Đăng nhập bằng Google
+          this.toast.error('Tài khoản đã bị khóa', err.error.message);
+        } else if (code === 'EMAIL_REGISTERED_LOCALLY') {
           this.toast.warning('Không thể đăng nhập bằng Google', err.error.message);
         } else {
           this.toast.error('Đăng nhập thất bại', err.error?.message || 'Có lỗi xảy ra. Vui lòng thử lại.');
@@ -186,7 +189,12 @@ export class Login implements AfterViewInit {
           },
           error: (err) => {
             console.error(err);
-            this.toast.error('Đăng nhập thất bại', 'Kiểm tra lại email hoặc mật khẩu.');
+            if (err.status === 403 && err.error?.message) {
+              // Bắt lỗi 403 (Tài khoản bị khóa) và hiển thị Toast chuyên biệt
+              this.toast.error('Tài khoản đã bị khóa', err.error.message);
+            } else {
+              this.toast.error('Đăng nhập thất bại', 'Kiểm tra lại email hoặc mật khẩu.');
+            }
           }
         });
     } else {

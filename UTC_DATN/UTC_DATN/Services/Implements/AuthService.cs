@@ -95,7 +95,9 @@ namespace UTC_DATN.Services.Implements
             // Kiểm tra user có active không
             if (!user.IsActive)
             {
-                return null; // User bị vô hiệu hóa
+                var lockReason = string.IsNullOrEmpty(user.LockReason) ? "Vi phạm chính sách" : user.LockReason;
+                var lockTime = user.LockedAt.HasValue ? user.LockedAt.Value.ToString("dd/MM/yyyy HH:mm") : "Không xác định";
+                throw new UnauthorizedAccessException($"Tài khoản của bạn đã bị khóa. LÝ DO KHÓA: {lockReason} (thời gian: {lockTime}). Rất tiếc, bạn không thể truy cập hệ thống lúc này.");
             }
 
             // Tạo và trả về JWT token
@@ -210,7 +212,11 @@ namespace UTC_DATN.Services.Implements
 
                 // Tài khoản đã là Google hoặc LocalAndGoogle → cho phép đăng nhập
                 if (!existingUser.IsActive)
-                    throw new InvalidOperationException("ACCOUNT_LOCKED");
+                {
+                    var lockReason = string.IsNullOrEmpty(existingUser.LockReason) ? "Vi phạm chính sách" : existingUser.LockReason;
+                    var lockTime = existingUser.LockedAt.HasValue ? existingUser.LockedAt.Value.ToString("dd/MM/yyyy HH:mm") : "Không xác định";
+                    throw new UnauthorizedAccessException($"Tài khoản của bạn đã bị khóa. LÝ DO KHÓA: {lockReason} (thời gian: {lockTime}). Rất tiếc, bạn không thể truy cập hệ thống lúc này.");
+                }
 
                 return await GenerateJwtToken(existingUser);
             }

@@ -1,0 +1,185 @@
+<div class="container mx-auto px-4 py-6">
+  <!-- Header -->
+  <div class="mb-6">
+    <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Quản lý Ứng viên</h1>
+    <p class="text-gray-600 dark:text-slate-400">Quản lý danh sách các ứng viên (Candidate) và trạng thái tài khoản</p>
+  </div>
+
+  <!-- Search & Stats -->
+  <div class="mb-6 bg-white dark:bg-slate-950 rounded-xl shadow-sm border border-gray-100 dark:border-slate-800 p-4">
+    <div class="flex flex-wrap items-center justify-between gap-4">
+      <!-- Search Box -->
+      <div class="flex-1 min-w-[300px]">
+        <div class="relative">
+          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <span class="material-symbols-outlined text-gray-400">search</span>
+          </div>
+          <input type="text" [(ngModel)]="searchTerm" (keyup.enter)="loadCandidates()"
+            placeholder="Tìm kiếm theo Tên, Email, SĐT..."
+            class="block w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-slate-700 dark:bg-slate-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button (click)="loadCandidates()"
+          class="px-5 py-2.5 bg-primary hover:bg-blue-700 text-white rounded-lg text-sm font-bold transition-all shadow-sm flex items-center gap-2">
+          <span class="material-symbols-outlined text-sm">refresh</span>
+          Tải lại
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="flex justify-between items-center mb-6">
+    <div class="flex items-center gap-3"></div>
+    <div class="flex items-center gap-2">
+      <span class="text-sm text-gray-500 dark:text-slate-400">
+        Tổng: <span class="font-bold text-gray-900 dark:text-white">{{ totalItems }}</span> ứng viên
+      </span>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="space-y-4">
+    <div class="bg-white dark:bg-slate-950 rounded-xl shadow-sm border border-gray-100 dark:border-slate-800 p-4 animate-pulse">
+      <div class="h-10 bg-gray-200 dark:bg-slate-700 rounded w-full"></div>
+    </div>
+  </div>
+
+  <!-- Candidates Table -->
+  <div *ngIf="!isLoading && candidates.length > 0"
+    class="bg-white dark:bg-slate-950 rounded-xl shadow-sm border border-gray-100 dark:border-slate-800 overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-800">
+        <thead class="bg-gray-50 dark:bg-slate-900">
+          <tr>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+              Ứng viên
+            </th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+              Liên hệ
+            </th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+              Phương thức
+            </th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+              Trạng thái
+            </th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+              Ngày tạo
+            </th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+              Thao tác
+            </th>
+          </tr>
+        </thead>
+        <tbody class="bg-white dark:bg-slate-950 divide-y divide-gray-200 dark:divide-slate-800">
+          <tr *ngFor="let candidate of candidates" class="hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors">
+            
+            <!-- User Info -->
+            <td class="px-6 py-4 whitespace-nowrap">
+              <div class="flex items-center">
+                <div class="flex-shrink-0 h-10 w-10">
+                  <img *ngIf="candidate.avatarUrl; else noAvatar" [src]="candidate.avatarUrl" class="h-10 w-10 rounded-full object-cover">
+                  <ng-template #noAvatar>
+                    <div class="h-10 w-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-sm">
+                      {{ getInitials(candidate.fullName) || 'U' }}
+                    </div>
+                  </ng-template>
+                </div>
+                <div class="ml-4">
+                  <div class="text-sm font-medium text-gray-900 dark:text-white">{{ candidate.fullName || '(Chưa cập nhật tên)' }}</div>
+                  <div class="text-xs text-gray-500 dark:text-slate-400">{{ candidate.email }}</div>
+                </div>
+              </div>
+            </td>
+
+            <!-- Phone -->
+            <td class="px-6 py-4 whitespace-nowrap">
+              <div class="text-sm text-gray-900 dark:text-white">{{ candidate.phone || '—' }}</div>
+            </td>
+
+            <!-- Auth Provider -->
+            <td class="px-6 py-4 whitespace-nowrap">
+              <span class="px-2 block w-fit py-0.5 rounded-full text-xs font-bold border"
+                [ngClass]="{
+                  'bg-blue-50 text-blue-700 border-blue-200': candidate.authProvider === 'Google',
+                  'bg-gray-50 text-gray-700 border-gray-200': candidate.authProvider === 'Local',
+                  'bg-purple-50 text-purple-700 border-purple-200': candidate.authProvider === 'LocalAndGoogle'
+                }">
+                {{ candidate.authProvider }}
+              </span>
+            </td>
+
+            <!-- Status -->
+            <td class="px-6 py-4">
+              <div class="flex flex-col gap-1">
+                 <span *ngIf="candidate.isActive" class="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 w-fit px-2.5 py-0.5 rounded-full text-xs font-bold">
+                    Hoạt động
+                  </span>
+                  <span *ngIf="!candidate.isActive" class="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300 w-fit px-2.5 py-0.5 rounded-full text-xs font-bold">
+                    Bị Mật Khóa
+                  </span>
+                  <div *ngIf="!candidate.isActive" class="text-xs text-red-500 mt-1">
+                    <div class="font-medium" *ngIf="candidate.lockedByName">Bởi: {{ candidate.lockedByName }}</div>
+                    <div *ngIf="candidate.lockedAt" class="text-gray-400">{{ candidate.lockedAt | date:'dd/MM/yyyy HH:mm' }}</div>
+                  </div>
+              </div>
+            </td>
+
+            <!-- Created Date -->
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-slate-400">
+              {{ candidate.createdAt | date:'dd/MM/yyyy' }}
+            </td>
+
+            <!-- Actions -->
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+              <div class="flex items-center gap-2">
+                <button (click)="toggleLock(candidate)" 
+                  class="flex items-center gap-1 transition-colors px-3 py-1.5 rounded-md border"
+                  [ngClass]="candidate.isActive ? 'text-red-600 border-red-200 hover:bg-red-50 bg-white' : 'text-green-600 border-green-200 hover:bg-green-50 bg-white'"
+                  [disabled]="isToggling[candidate.userId]">
+                  
+                  <ng-container *ngIf="!isToggling[candidate.userId]">
+                    <span class="material-symbols-outlined text-[18px]">
+                      {{ candidate.isActive ? 'lock' : 'lock_open' }}
+                    </span>
+                    {{ candidate.isActive ? 'Khóa' : 'Mở Khóa' }}
+                  </ng-container>
+                  
+                  <ng-container *ngIf="isToggling[candidate.userId]">
+                    <span class="animate-spin text-[18px]">⏳</span>
+                    Đang xử lý...
+                  </ng-container>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
+      <p class="text-xs text-gray-500 font-medium">
+        Hiển thị {{ (pageConfig - 1) * pageSize + 1 }} - {{ Math.min(pageConfig * pageSize, totalItems) }} trên tổng số {{ totalItems }}
+      </p>
+      <div class="flex gap-1" *ngIf="totalPages > 1">
+        <button [disabled]="pageConfig === 1" (click)="changePage(pageConfig - 1)"
+          class="p-1 px-3 border rounded-lg bg-white disabled:opacity-50">Trước</button>
+        <div class="flex items-center px-4 font-bold text-sm">{{ pageConfig }} / {{ totalPages }}</div>
+        <button [disabled]="pageConfig === totalPages" (click)="changePage(pageConfig + 1)"
+          class="p-1 px-3 border rounded-lg bg-white disabled:opacity-50">Sau</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!isLoading && candidates.length === 0" class="bg-white rounded-xl shadow-sm border p-12 text-center">
+    <div class="w-16 h-16 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-4">
+      <span class="material-symbols-outlined text-gray-400" style="font-size: 32px">search_off</span>
+    </div>
+    <h3 class="text-lg font-medium text-gray-900">Không tìm thấy ứng viên nào</h3>
+    <p class="text-sm text-gray-500 mt-1">Vui lòng thử lại với từ khóa khác.</p>
+  </div>
+</div>

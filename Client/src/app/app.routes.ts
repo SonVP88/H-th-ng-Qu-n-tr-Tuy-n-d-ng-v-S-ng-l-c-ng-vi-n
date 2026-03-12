@@ -15,6 +15,7 @@ import { authGuard } from './guards/auth.guard';
 import { CandidateDetail } from './components/admin/candidate-detail/candidate-detail';
 import { jobResolver } from './resolvers/job-search.resolver';
 import { profileResolver } from './resolvers/profile.resolver';
+import { candidateLayoutGuard } from './guards/candidate-layout.guard';
 
 export const routes: Routes = [
   { path: 'login', component: Login },
@@ -22,6 +23,7 @@ export const routes: Routes = [
   { path: '403', component: ForbiddenComponent },
   {
     path: 'candidate',
+    canActivateChild: [candidateLayoutGuard],
     children: [
       // Public - không cần đăng nhập
       { path: 'home', component: Home },
@@ -102,6 +104,12 @@ export const routes: Routes = [
       {
         path: 'skills',
         loadComponent: () => import('./pages/admin/skill-management/skill-management').then(m => m.SkillManagementComponent),
+        canActivate: [roleGuard],
+        data: { roles: ['ADMIN'] }
+      },
+      {
+        path: 'candidates',
+        loadComponent: () => import('./pages/admin/candidate-management/candidate-management').then(m => m.CandidateManagementComponent),
         canActivate: [roleGuard],
         data: { roles: ['ADMIN'] }
       },

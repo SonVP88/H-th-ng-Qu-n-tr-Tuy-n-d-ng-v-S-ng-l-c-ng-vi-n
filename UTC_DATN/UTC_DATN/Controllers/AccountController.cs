@@ -142,5 +142,119 @@ namespace UTC_DATN.Controllers
             await _context.SaveChangesAsync();
             return Ok(new { message = "Cập nhật thông tin công ty thành công" });
         }
+
+        // ==========================================
+        // QUẢN LÝ ỨNG VIÊN BỞI ADMIN/HR
+        // ==========================================
+
+        [HttpGet("candidates")]
+        [Authorize(Roles = "ADMIN,HR")]
+        public async Task<IActionResult> GetCandidates([FromQuery] string searchTerm = "", [FromQuery] int pageConfig = 1, [FromQuery] int pageSize = 10)
+        {
+            var query = _context.Users
+                .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.Role)
+                .Where(u => u.UserRoles.Any(ur => ur.Role.Name == "CANDIDATE") || 
+                           !u.UserRoles.Any(ur => ur.Role.Name == "ADMIN" || ur.Role.Name == "HR" || ur.Role.Name == "INTERVIEWER"));
+
+            if (!string.IsNullOrEmpty(searchTerm))
+            {
+                var lowerSearch = searchTerm.ToLower();
+                query = query.Where(u =>
+                    (u.Email != null && u.Email.ToLower().Contains(lowerSearch)) ||
+                    (u.FullName != null && u.FullName.ToLower().Contains(lowerSearch)) ||
+                    (u.Phone != null && u.Phone.ToLower().Contains(lowerSearch))
+                );
+            }
+
+            var totalItems = await query.CountAsync();
+            var candidates = await query
+                .OrderByDescending(u => u.CreatedAt)
+                .Skip((pageConfig - 1) * pageSize)
+                .Take(pageSize)
+                .Select(u => new
+                {
+                    UserId = u.UserId,
+                    Email = u.Email,
+                    FullName = u.FullName,
+                    Phone = u.Phone,
+                    AvatarUrl = u.AvatarUrl,
+                    IsActive = u.IsActive,
+                    AuthProvider = u.AuthProvider,
+                    CreatedAt = u.CreatedAt,
+                    LockedAt = u.LockedAt,
+                    LockedByName = u.LockedByName,
+                    LockReason = u.LockReason
+                })
+                .ToListAsync();
+
+            return Ok(new
+            {
+                data = candidates,
+                total = totalItems,
+                page = pageConfig,
+                pageSize = pageSize
+            });
+        }
+
+        [HttpPut("candidates/{id}/toggle-status")]
+        [Authorize(Roles = "ADMIN,HR")]
+        public async Task<IActionResult> ToggleCandidateStatus(Guid id, [FromBody] ToggleStatusDto dto)
+        {
+            var user = await _context.Users
+                .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.Role)
+                .FirstOrDefaultAsync(u => u.UserId == id);
+
+            // Cho phép toggle nếu user có role CANDIDATE HOẶC user không có role ADMIN/HR (trường hợp user tự đăng ký thiếu role)
+            bool isCandidate = user != null && 
+                               (user.UserRoles.Any(ur => ur.Role.Name == "CANDIDATE") || 
+                               !user.UserRoles.Any(ur => ur.Role.Name == "ADMIN" || ur.Role.Name == "HR" || ur.Role.Name == "INTERVIEWER"));
+
+            if (user == null || !isCandidate)
+            {
+                return NotFound(new { message = "Không tìm thấy người dùng hoặc không phải Ứng viên." });
+            }
+
+            if (user.IsActive)
+            {
+                // Hành động khóa
+                user.IsActive = false;
+                user.LockedAt = DateTime.UtcNow;
+                user.LockReason = string.IsNullOrEmpty(dto?.Reason) ? "Bị khóa bởi quản trị viên" : dto.Reason;
+                
+                var adminId = GetUserId();
+                user.LockedById = adminId;
+                
+                // Cố gắng lấy tên Admin/HR thực hiện khóa
+                var admin = await _context.Users.FindAsync(adminId);
+                if (admin != null)
+                {
+                    user.LockedByName = admin.FullName;
+                }
+            }
+            else
+            {
+                // Hành động mở khóa
+                user.IsActive = true;
+                user.LockedAt = null;
+                user.LockedById = null;
+                user.LockedByName = null;
+                user.LockReason = null;
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                message = user.IsActive ? "Đã MỞ KHÓA tài khoản ứng viên." : "Đã KHÓA tài khoản ứng viên thành công.",
+                isActive = user.IsActive
+            });
+        }
+    }
+
+    public class ToggleStatusDto
+    {
+        public string Reason { get; set; }
     }
 }

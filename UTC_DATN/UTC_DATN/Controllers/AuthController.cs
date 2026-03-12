@@ -46,14 +46,26 @@ namespace UTC_DATN.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
-            var result = await _authService.LoginAsync(request);
-
-            if (result == null)
+            try 
             {
-                return Unauthorized(new { message = "Thông tin đăng nhập không chính xác" });
-            }
+                var result = await _authService.LoginAsync(request);
 
-            return Ok(new { Token = result });
+                if (result == null)
+                {
+                    return Unauthorized(new { message = "Thông tin đăng nhập không chính xác" });
+                }
+
+                return Ok(new { Token = result });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                // Truyền cục bộ Lỗi Tài khoản khóa (IsActive = false) từ Service
+                return StatusCode(403, new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi hệ thống: " + ex.Message });
+            }
         }
 
         [HttpPost("change-password")]
@@ -118,9 +130,10 @@ namespace UTC_DATN.Controllers
                     errorCode = "EMAIL_REGISTERED_LOCALLY"
                 });
             }
-            catch (InvalidOperationException ex) when (ex.Message == "ACCOUNT_LOCKED")
+            catch (UnauthorizedAccessException ex)
             {
-                return BadRequest(new { message = "Tài khoản của bạn đã bị vô hiệu hóa. Vui lòng liên hệ hỗ trợ.", errorCode = "ACCOUNT_LOCKED" });
+                // Truyền cục bộ Lỗi Tài khoản khóa (IsActive = false) từ Service bằng mã 403
+                return StatusCode(403, new { message = ex.Message, errorCode = "ACCOUNT_LOCKED" });
             }
         }
 

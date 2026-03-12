@@ -30,8 +30,10 @@ export class HrLayout implements OnInit, OnDestroy {
   ) { }
 
   ngOnInit(): void {
-    this.loadNotifications();
-    this.loadUserFromToken();
+    setTimeout(() => {
+      this.loadNotifications();
+      this.loadUserFromToken();
+    });
 
     if (isPlatformBrowser(this.platformId)) {
       this.pollingInterval = setInterval(() => {
