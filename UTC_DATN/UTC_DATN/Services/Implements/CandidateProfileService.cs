@@ -285,11 +285,11 @@ namespace UTC_DATN.Services.Implements
                 throw new Exception("Không tìm thấy hồ sơ ứng viên");
 
             // Validate file
-            var allowedExtensions = new[] { ".pdf", ".doc", ".docx" };
+            var allowedExtensions = new[] { ".pdf" };
             var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
             
             if (!allowedExtensions.Contains(extension))
-                throw new Exception("Chỉ chấp nhận file PDF, DOC, DOCX");
+                throw new Exception("Chỉ chấp nhận file PDF");
 
             if (file.Length > 10 * 1024 * 1024) // 10MB
                 throw new Exception("Kích thước file không được vượt quá 10MB");

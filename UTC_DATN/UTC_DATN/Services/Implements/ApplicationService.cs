@@ -14,6 +14,7 @@ public class ApplicationService : IApplicationService
     private readonly IAiMatchingService _aiMatchingService;
     private readonly IEmailService _emailService;
     private readonly INotificationService _notificationService;
+    private readonly IServiceProvider _serviceProvider;  // ← NEW: Para crear scope en background
 
     // Các extension được phép
     private static readonly string[] AllowedExtensions = { ".pdf", ".docx" };
@@ -27,7 +28,8 @@ public class ApplicationService : IApplicationService
         ILogger<ApplicationService> logger,
         IAiMatchingService aiMatchingService,
         IEmailService emailService,
-        INotificationService notificationService)
+        INotificationService notificationService,
+        IServiceProvider serviceProvider)  // ← NEW: Inject service provider
     {
         _context = context;
         _environment = environment;
@@ -35,6 +37,7 @@ public class ApplicationService : IApplicationService
         _aiMatchingService = aiMatchingService;
         _emailService = emailService;
         _notificationService = notificationService;
+        _serviceProvider = serviceProvider;  // ← NEW: Store service provider
     }
 
 
@@ -275,67 +278,16 @@ public class ApplicationService : IApplicationService
                 await _context.SaveChangesAsync();
                 _logger.LogInformation("Đã tạo Application: {ApplicationId}", application.ApplicationId);
 
-                // ===== AI SCORING =====
-                try
-                {
-                    _logger.LogInformation("Bắt đầu chấm điểm CV bằng AI cho Application: {ApplicationId}", application.ApplicationId);
-
-                    // Kiểm tra file extension - Chỉ hỗ trợ PDF
-                    var cvExt = Path.GetExtension(savedFilePath).ToLowerInvariant();
-                    if (cvExt != ".pdf")
-                    {
-                        _logger.LogWarning("File không phải PDF ({Extension}), bỏ qua AI scoring. Chỉ hỗ trợ file PDF.", cvExt);
-                    }
-                    else
-                    {
-                        // 1. Lấy Job Description đầy đủ (gộp Title + Description + Requirements)
-                        var jobContext = new System.Text.StringBuilder();
-                        jobContext.AppendLine($"Job Title: {job.Title}");
-                        jobContext.AppendLine("Job Description:");
-                        jobContext.AppendLine(job.Description ?? "");
-                        jobContext.AppendLine("Job Requirements:");
-                        jobContext.AppendLine(job.Requirements ?? "");
-
-                        var fullJobDescription = jobContext.ToString();
-                        
-                        if (string.IsNullOrWhiteSpace(fullJobDescription.Replace("Job Title: " + job.Title, "").Trim()))
-                        {
-                            _logger.LogWarning("Job không có Description/Requirements, bỏ qua AI scoring");
-                        }
-                        else
-                        {
-                            // 2. Gọi AI để chấm điểm 
-                            _logger.LogInformation("Gửi trực tiếp tệp PDF cho AI: {FilePath}", savedFilePath);
-                            var aiScore = await _aiMatchingService.ScoreApplicationAsync(savedFilePath, fullJobDescription);
-                            
-                            // 3. Lưu kết quả vào database
-                            var applicationAiScore = new ApplicationAiScore
-                            {
-                                    AiScoreId = Guid.NewGuid(),
-                                    ApplicationId = application.ApplicationId,
-                                    MatchingScore = aiScore.Score,
-                                    MatchedSkillsJson = System.Text.Json.JsonSerializer.Serialize(new
-                                    {
-                                        matchedSkills = aiScore.MatchedSkills,
-                                        missingSkills = aiScore.MissingSkills,
-                                        explanation = aiScore.Explanation
-                                    }),
-                                    Model = "gemini-2.5-flash",
-                                    CreatedAt = DateTime.UtcNow
-                                };
-
-                                _context.ApplicationAiScores.Add(applicationAiScore);
-                                await _context.SaveChangesAsync();
-                                
-                                _logger.LogInformation("Đã lưu AI Score: {Score}/100 cho Application: {ApplicationId}", 
-                                    aiScore.Score, application.ApplicationId);
-                            }
-                        }
-                    }
-                catch (Exception aiEx)
-                {
-                    _logger.LogWarning(aiEx, "Lỗi khi chấm điểm CV bằng AI, tiếp tục xử lý");
-                }
+                // ===== AI SCORING (ASYNC BACKGROUND TASK) =====
+                // Fire and forget: AI scoring runs in background, không block response
+                _ = Task.Run(() => ScoreApplicationInBackgroundAsync(
+                    application.ApplicationId,
+                    savedFilePath,
+                    job.Title,
+                    job.Description,
+                    job.Requirements
+                ));
+                _logger.LogInformation("⚡ Đã gửi AI scoring task vào background cho Application: {ApplicationId}", application.ApplicationId);
                 // ===== END AI SCORING =====
 
                 // 9. TẠO THÔNG BÁO CHO ỨNG VIÊN (NEW)
@@ -890,5 +842,85 @@ public class ApplicationService : IApplicationService
         }).ToList();
 
         return result;
+    }
+
+    /// <summary>
+    /// Background task: Chấm điểm CV bằng AI không block main response
+    /// Chạy song song, không đợi hoàn thành để trả response cho client
+    /// </summary>
+    private async Task ScoreApplicationInBackgroundAsync(
+        Guid applicationId,
+        string savedFilePath,
+        string jobTitle,
+        string jobDescription,
+        string jobRequirements)
+    {
+        try
+        {
+            _logger.LogInformation("🔄 [BACKGROUND] Bắt đầu chấm điểm CV bằng AI cho Application: {ApplicationId}", applicationId);
+
+            // ★ Tạo scope mới để sử dụng DbContext và services trong background thread
+            using (var scope = _serviceProvider.CreateScope())
+            {
+                var scopedDbContext = scope.ServiceProvider.GetRequiredService<UTC_DATNContext>();
+                var scopedLogger = scope.ServiceProvider.GetRequiredService<ILogger<ApplicationService>>();
+                var scopedAiService = scope.ServiceProvider.GetRequiredService<IAiMatchingService>();
+
+                // Kiểm tra file extension - Chỉ hỗ trợ PDF
+                var cvExt = Path.GetExtension(savedFilePath).ToLowerInvariant();
+                if (cvExt != ".pdf")
+                {
+                    scopedLogger.LogWarning("🔄 [BACKGROUND] File không phải PDF ({Extension}), bỏ qua AI scoring. Chỉ hỗ trợ file PDF.", cvExt);
+                    return;
+                }
+
+                // 1. Lấy Job Description đầy đủ (gộp Title + Description + Requirements)
+                var jobContext = new System.Text.StringBuilder();
+                jobContext.AppendLine($"Job Title: {jobTitle}");
+                jobContext.AppendLine("Job Description:");
+                jobContext.AppendLine(jobDescription ?? "");
+                jobContext.AppendLine("Job Requirements:");
+                jobContext.AppendLine(jobRequirements ?? "");
+
+                var fullJobDescription = jobContext.ToString();
+
+                if (string.IsNullOrWhiteSpace(fullJobDescription.Replace("Job Title: " + jobTitle, "").Trim()))
+                {
+                    scopedLogger.LogWarning("🔄 [BACKGROUND] Job không có Description/Requirements, bỏ qua AI scoring");
+                    return;
+                }
+
+                // 2. Gọi AI để chấm điểm
+                scopedLogger.LogInformation("🔄 [BACKGROUND] Gửi CV trực tiếp cho AI: {FilePath}", savedFilePath);
+                var aiScore = await scopedAiService.ScoreApplicationAsync(savedFilePath, fullJobDescription);
+
+                // 3. Lưu kết quả vào database
+                var applicationAiScore = new ApplicationAiScore
+                {
+                    AiScoreId = Guid.NewGuid(),
+                    ApplicationId = applicationId,
+                    MatchingScore = aiScore.Score,
+                    MatchedSkillsJson = System.Text.Json.JsonSerializer.Serialize(new
+                    {
+                        matchedSkills = aiScore.MatchedSkills,
+                        missingSkills = aiScore.MissingSkills,
+                        explanation = aiScore.Explanation
+                    }),
+                    Model = "gemini-2.5-flash",
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                scopedDbContext.ApplicationAiScores.Add(applicationAiScore);
+                await scopedDbContext.SaveChangesAsync();
+
+                scopedLogger.LogInformation("✅ [BACKGROUND] Đã lưu AI Score: {Score}/100 cho Application: {ApplicationId}", 
+                    aiScore.Score, applicationId);
+            }
+        }
+        catch (Exception aiEx)
+        {
+            _logger.LogWarning(aiEx, "⚠️ [BACKGROUND] Lỗi khi chấm điểm CV bằng AI - Application: {ApplicationId}, tiếp tục xử lý", applicationId);
+            // Không throw, để không làm crash background task
+        }
     }
 }

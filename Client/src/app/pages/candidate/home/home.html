@@ -197,7 +197,14 @@
 
         <!-- Job Cards - Dynamic -->
         <div *ngFor="let job of featuredJobs"
-          class="group bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col h-full">
+          class="group bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col h-full relative">
+          <!-- Applied Badge -->
+          <div *ngIf="job.hasApplied"
+            class="absolute top-4 right-16 px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-bold rounded-full flex items-center gap-1 shadow-sm">
+            <span class="material-symbols-outlined text-sm">check_circle</span>
+            Đã ứng tuyển
+          </div>
+
           <div class="flex items-start justify-between mb-4">
             <div
               class="size-12 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400">
@@ -220,6 +227,10 @@
               </h3>
             </a>
             <p class="text-slate-500 dark:text-slate-400 text-sm">{{ job.companyName }}</p>
+            <!-- Applied Date Info -->
+            <p *ngIf="job.hasApplied && job.appliedAt" class="text-xs text-green-600 dark:text-green-400 mt-1">
+              Ứng tuyển: {{ formatDate(job.appliedAt) }}
+            </p>
           </div>
 
           <!-- Skills Tags -->

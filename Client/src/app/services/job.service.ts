@@ -41,6 +41,9 @@ export interface JobDto {
     // Audit Trail
     closedAt?: string;
     closedByName?: string;
+    // Candidate Application Status (NEW)
+    hasApplied?: boolean;
+    appliedAt?: string;
 }
 
 export interface JobDetailDto extends JobDto {

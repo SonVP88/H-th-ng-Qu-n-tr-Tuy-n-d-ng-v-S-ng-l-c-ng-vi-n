@@ -251,24 +251,32 @@ export class CandidateProfile implements OnInit {
     onFileSelected(event: Event): void {
         const input = event.target as HTMLInputElement;
         if (input.files && input.files.length > 0) {
-            this.uploadCV(input.files[0]);
+            const file = input.files[0];
+            // Check file type
+            if (file.type !== 'application/pdf') {
+                this.toast.error('Lỗi', 'Chỉ chấp nhận file PDF');
+                return;
+            }
+            // Check file size
+            if (file.size > 10 * 1024 * 1024) {
+                this.toast.error('Lỗi', 'Kích thước file không được vượt quá 10MB');
+                return;
+            }
+            this.uploadCV(file);
         }
     }
 
     uploadCV(file: File): void {
-        const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-        if (!allowedTypes.includes(file.type)) return;
-        if (file.size > 10 * 1024 * 1024) return;
-
         this.isUploading = true;
         this.candidateService.uploadCV(file).subscribe({
             next: () => {
                 this.isUploading = false;
                 this.loadProfile();
+                this.toast.success('Thành công', 'Upload CV thành công!');
             },
             error: (err) => {
-                console.error('Upload failed', err);
                 this.isUploading = false;
+                this.toast.error('Lỗi', err.error?.message || 'Upload CV thất bại');
             }
         });
     }

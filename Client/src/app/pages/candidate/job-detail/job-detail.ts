@@ -215,13 +215,14 @@ export class JobDetail implements OnInit {
    * Validate and set file
    */
   private validateAndSetFile(file: File): void {
-    const allowedExtensions = ['.pdf', '.doc', '.docx'];
+    const allowedExtensions = ['.pdf'];
     const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
 
     if (!allowedExtensions.includes(fileExtension)) {
-      this.submitError = 'Chỉ chấp nhận file PDF, DOC hoặc DOCX';
+      this.submitError = 'Chỉ chấp nhận file PDF';
       this.selectedFile = null;
       this.selectedFileName = '';
+      this.toast.error('File không hợp lệ', 'Chỉ chấp nhận file PDF. Vui lòng chọn file PDF khác!');
       return;
     }
 
@@ -230,12 +231,14 @@ export class JobDetail implements OnInit {
       this.submitError = 'File không được vượt quá 5MB';
       this.selectedFile = null;
       this.selectedFileName = '';
+      this.toast.error('File quá lớn', 'File không được vượt quá 5MB. Vui lòng chọn file nhỏ hơn!');
       return;
     }
 
     this.selectedFile = file;
     this.selectedFileName = file.name;
     this.submitError = null;
+    this.toast.success('File được chấp nhận', `${file.name} đã được chọn. Sẵn sàng gửi hồ sơ!`);
   }
 
   /**
@@ -302,13 +305,18 @@ export class JobDetail implements OnInit {
           this.isSubmitting = false;
           this.submitSuccess = false;
 
-          if (err.status === 409) {
-            this.submitError = 'Bạn đã nộp hồ sơ cho công việc này rồi';
+          // Handle specific error from backend
+          const errorMessage = err.error?.message || 'Có lỗi xảy ra. Vui lòng thử lại sau.';
+          
+          // Check if it's a duplicate application error
+          if (errorMessage.includes('đã nộp hồ sơ') || errorMessage.includes('đã apply')) {
+            this.submitError = 'Đã gửi đơn cho công việc này rồi. Không thể gửi lại.';
           } else if (err.status === 400) {
-            this.submitError = err.error?.message || 'Dữ liệu không hợp lệ';
+            this.submitError = errorMessage;
           } else {
             this.submitError = 'Có lỗi xảy ra. Vui lòng thử lại sau.';
           }
+          
           this.toast.error('Ứng tuyển thất bại', this.submitError || 'Có lỗi xảy ra. Vui lòng thử lại sau.');
         }
       });

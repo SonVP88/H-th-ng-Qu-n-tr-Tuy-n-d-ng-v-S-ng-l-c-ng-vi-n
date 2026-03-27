@@ -118,7 +118,7 @@ namespace UTC_DATN.Controllers
         }
 
         /// <summary>
-        /// POST /api/candidate/upload-cv - Upload CV file
+        /// POST /api/candidate/upload-cv - Upload CV file (PDF only)
         /// </summary>
         [HttpPost("upload-cv")]
         public async Task<IActionResult> UploadCV(IFormFile file)
@@ -128,6 +128,20 @@ namespace UTC_DATN.Controllers
                 if (file == null || file.Length == 0)
                 {
                     return BadRequest(new { message = "Vui lòng chọn file để tải lên" });
+                }
+
+                // Validate file type - only PDF
+                var allowedExtensions = new[] { ".pdf" };
+                var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+                if (!allowedExtensions.Contains(extension))
+                {
+                    return BadRequest(new { message = "Chỉ chấp nhận file PDF" });
+                }
+
+                // Validate file size - max 10MB
+                if (file.Length > 10 * 1024 * 1024)
+                {
+                    return BadRequest(new { message = "Kích thước file không được vượt quá 10MB" });
                 }
 
                 var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);

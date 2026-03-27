@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using UTC_DATN.Data;
 using UTC_DATN.DTOs.Job;
 using UTC_DATN.Services.Interfaces;
 
@@ -12,10 +14,14 @@ namespace UTC_DATN.Controllers;
 public class JobsController : ControllerBase
 {
     private readonly IJobService _jobService;
+    private readonly UTC_DATNContext _context;
+    private readonly ILogger<JobsController> _logger;
 
-    public JobsController(IJobService jobService)
+    public JobsController(IJobService jobService, UTC_DATNContext context, ILogger<JobsController> logger)
     {
         _jobService = jobService;
+        _context = context;
+        _logger = logger;
     }
 
     /// <summary>
@@ -187,6 +193,7 @@ public class JobsController : ControllerBase
     /// <summary>
     /// API lấy danh sách job mới nhất cho trang chủ
     /// Hỗ trợ tìm kiếm theo keyword (title, company, skills) và location
+    /// Nếu user đã đăng nhập, sẽ include thông tin đã ứng tuyển (HasApplied, AppliedAt)
     /// </summary>
     [HttpGet("latest/{count}")]
     [AllowAnonymous] // Cho phép truy cập không cần token
@@ -198,6 +205,43 @@ public class JobsController : ControllerBase
         try
         {
             var jobs = await _jobService.GetLatestJobsAsync(count, keyword, location);
+            
+            // Nếu user đã đăng nhập, thêm thông tin đã ứng tuyển
+            var token = Request.Headers["Authorization"].ToString();
+            if (!string.IsNullOrEmpty(token))
+            {
+                try
+                {
+                    var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                    if (!string.IsNullOrEmpty(userId) && Guid.TryParse(userId, out var userGuid))
+                    {
+                        var candidate = await _context.Candidates.FirstOrDefaultAsync(c => c.UserId == userGuid);
+                        if (candidate != null)
+                        {
+                            var appliedJobs = await _context.Applications
+                                .Where(a => a.CandidateId == candidate.CandidateId)
+                                .Select(a => new { a.JobId, a.AppliedAt })
+                                .ToListAsync();
+
+                            var appliedJobDictionary = appliedJobs.ToDictionary(a => a.JobId, a => a.AppliedAt);
+
+                            foreach (var job in jobs)
+                            {
+                                if (appliedJobDictionary.TryGetValue(job.JobId, out var appliedAt))
+                                {
+                                    job.HasApplied = true;
+                                    job.AppliedAt = appliedAt;
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Lỗi khi lấy thông tin đã ứng tuyển");
+                }
+            }
+
             return Ok(jobs);
         }
         catch (Exception ex)

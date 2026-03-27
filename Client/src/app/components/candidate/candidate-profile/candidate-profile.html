@@ -369,7 +369,7 @@
                 </div>
 
                 <!-- Upload Section -->
-                <input #fileInput type="file" accept=".pdf,.doc,.docx" (change)="onFileSelected($event)"
+                <input #fileInput type="file" accept=".pdf" (change)="onFileSelected($event)"
                     class="hidden" />
                 <div (click)="fileInput.click()" [class.opacity-60]="isUploading"
                     [class.pointer-events-none]="isUploading"
@@ -387,8 +387,7 @@
                         {{ isUploading ? 'Đang tải lên...' : 'Tải lên CV mới' }}
                     </h4>
                     <p class="text-sm text-slate-500 dark:text-slate-400 mb-4 max-w-xs mx-auto">
-                        {{ isUploading ? 'Vui lòng chờ trong giây lát' : 'Nhấp để chọn hoặc kéo thả tệp tin vào đây
-                        (PDF, DOC, DOCX - Max 10MB)' }}
+                        {{ isUploading ? 'Vui lòng chờ trong giây lát' : 'Nhấp để chọn hoặc kéo thả tệp tin vào đây (PDF - Max 10MB)' }}
                     </p>
                     <div *ngIf="!isUploading"
                         class="inline-flex px-5 py-2.5 bg-primary text-white hover:bg-blue-700 rounded-lg text-sm font-bold shadow-lg shadow-primary/20 transition-all">

@@ -251,6 +251,35 @@ export class Home implements OnInit {
   }
 
   /**
+   * Format applied date - relative time
+   * VD: "2 ngày trước", "Hôm qua", "3 tuần trước"
+   */
+  formatDate(dateString: string | null | undefined): string {
+    if (!dateString) return 'N/A';
+
+    try {
+      const date = new Date(dateString);
+      const now = new Date();
+      const diffTime = now.getTime() - date.getTime();
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
+      const diffMinutes = Math.floor(diffTime / (1000 * 60));
+
+      if (diffMinutes < 1) return 'Vừa xong';
+      if (diffMinutes < 60) return `${diffMinutes} phút trước`;
+      if (diffHours < 24) return `${diffHours} giờ trước`;
+      if (diffDays === 0) return 'Hôm nay';
+      if (diffDays === 1) return 'Hôm qua';
+      if (diffDays <= 7) return `${diffDays} ngày trước`;
+      if (diffDays <= 30) return `${Math.floor(diffDays / 7)} tuần trước`;
+
+      return date.toLocaleDateString('vi-VN');
+    } catch (e) {
+      return dateString;
+    }
+  }
+
+  /**
    * Tìm kiếm jobs theo keyword và location
    */
   onSearch(): void {

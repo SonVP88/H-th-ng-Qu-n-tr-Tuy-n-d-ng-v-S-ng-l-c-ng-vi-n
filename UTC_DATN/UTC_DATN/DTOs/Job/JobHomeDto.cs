@@ -37,4 +37,8 @@ public class JobHomeDto
     // Audit Trail
     public string? ClosedByName { get; set; } // Ai đã đóng job này?
     public DateTime? ClosedAt { get; set; } // Khi nào job này bị đóng?
+
+    // Candidate Application Status (chỉ populate khi user đã đăng nhập)
+    public bool HasApplied { get; set; } = false; // Có phải đã ứng tuyển công việc này không?
+    public DateTime? AppliedAt { get; set; } // Thời gian ứng tuyển (nếu đã ứng tuyển)
 }
