@@ -39,10 +39,3 @@ V9 TECH is a comprehensive, full-stack recruitment management portal designed to
 * [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
 * [Node.js](https://nodejs.org/) (v18 or higher) & Angular CLI
 * SQL Server
-
-### 1. Setup Backend
-```bash
-cd UTC_DATN
-# Update your Connection String in appsettings.json
-dotnet ef database update
-dotnet run
