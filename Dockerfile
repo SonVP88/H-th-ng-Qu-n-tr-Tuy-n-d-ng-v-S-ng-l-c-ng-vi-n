@@ -1,16 +1,16 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-# Tìm và copy tất cả file .csproj vào để restore
+# Copy toàn bộ code vào trong container
 COPY . .
-RUN dotnet restore
 
-# Build project
+# Restore và Publish (Render sẽ tự tìm file .csproj trong thư mục hiện tại)
+RUN dotnet restore
 RUN dotnet publish -c Release -o /app/publish
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
 COPY --from=build /app/publish .
 
-# Chỗ này Sơn lưu ý: Thay "UTC_DATN.dll" bằng đúng tên file dll của Sơn nếu nó khác nhé
+# Nhớ kiểm tra xem tên file chạy của Sơn có đúng là UTC_DATN.dll không nhé
 ENTRYPOINT ["dotnet", "UTC_DATN.dll"]
