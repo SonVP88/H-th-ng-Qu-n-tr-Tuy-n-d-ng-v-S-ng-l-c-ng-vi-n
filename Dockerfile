@@ -1,10 +1,11 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-# Copy toàn bộ code vào trong container
+# Copy toàn bộ code vào (bao gồm cả thư mục UTC_DATN)
 COPY . .
 
-# Restore và Publish (Render sẽ tự tìm file .csproj trong thư mục hiện tại)
+# Di chuyển vào thư mục chứa code BE để build
+WORKDIR "/src/UTC_DATN"
 RUN dotnet restore
 RUN dotnet publish -c Release -o /app/publish
 
@@ -12,5 +13,5 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
 COPY --from=build /app/publish .
 
-# Nhớ kiểm tra xem tên file chạy của Sơn có đúng là UTC_DATN.dll không nhé
+# Kiểm tra kỹ tên file .dll này có đúng là UTC_DATN.dll không nhé
 ENTRYPOINT ["dotnet", "UTC_DATN.dll"]
