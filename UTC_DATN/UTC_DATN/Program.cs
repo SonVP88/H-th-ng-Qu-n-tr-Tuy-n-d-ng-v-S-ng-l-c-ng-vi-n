@@ -103,7 +103,7 @@ using (var scope = app.Services.CreateScope())
 
     // 1. Kiểm tra xem đã có kết nối chưa và tạo bảng nếu CHƯA CÓ GÌ
     // Lệnh này nhẹ hơn nhiều vì nó chỉ tạo cấu trúc, không check phức tạp
-    await context.Database.EnsureCreatedAsync();
+    //await context.Database.EnsureCreatedAsync();
 
     // 2. Kiểm tra xem bảng đã có dữ liệu chưa trước khi Seed (Dập tắt lỗi tràn RAM)
     // Ví dụ: Chỉ Seed dữ liệu nếu bảng Users chưa có ai
