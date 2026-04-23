@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
 # Copy toàn bộ code vào (bao gồm cả thư mục UTC_DATN)
@@ -9,8 +9,8 @@ WORKDIR "/src/UTC_DATN"
 RUN dotnet restore
 RUN dotnet publish -c Release -o /app/publish
 
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
-WORKDIR /app
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
+WORKDIR /s
 COPY --from=build /app/publish .
 
 # Kiểm tra kỹ tên file .dll này có đúng là UTC_DATN.dll không nhé
