@@ -16,6 +16,8 @@ export interface JobDetailDto {
   salaryMax: number | null;
   location: string | null;
   employmentType: string | null;
+  experienceLevel: string | null;
+  seniorityLevel: string | null;
   deadline: string | null;
   createdDate: string;
   skills: string[];
@@ -358,6 +360,59 @@ export class JobDetail implements OnInit {
       month: 'short',
       day: 'numeric'
     });
+  }
+
+  getExperienceLabel(): string {
+    if (this.job?.experienceLevel) return this.job.experienceLevel;
+
+    const requirements = this.job?.requirements;
+    if (!requirements) return 'Chưa cập nhật';
+
+    const lines = requirements.split('\n').map(line => line.trim()).filter(Boolean);
+    const expLine = lines.find(line => /^Kinh nghiệm\s*:/i.test(line));
+    if (!expLine) return 'Chưa cập nhật';
+
+    return expLine.replace(/^Kinh nghiệm\s*:/i, '').trim() || 'Chưa cập nhật';
+  }
+
+  getSeniorityLabel(): string {
+    if (this.job?.seniorityLevel) return this.job.seniorityLevel;
+
+    const title = this.job?.title;
+    if (!title) return 'Chưa cập nhật';
+
+    const normalized = title.toLowerCase();
+    if (normalized.includes('intern') || normalized.includes('thực tập')) return 'Intern';
+    if (normalized.includes('fresher')) return 'Fresher';
+    if (normalized.includes('junior')) return 'Junior';
+    if (normalized.includes('senior')) return 'Senior';
+    if (normalized.includes('lead')) return 'Lead';
+    if (normalized.includes('manager')) return 'Manager';
+    if (normalized.includes('mid')) return 'Middle';
+
+    return 'Chưa cập nhật';
+  }
+
+  getContactName(): string {
+    return this.job?.companyName || 'Nhà tuyển dụng';
+  }
+
+  getWebsiteLabel(): string {
+    const email = this.job?.contactEmail;
+    if (!email || !email.includes('@')) return 'Chưa cập nhật';
+    return email.split('@')[1];
+  }
+
+  getWebsiteUrl(): string | null {
+    const email = this.job?.contactEmail;
+    if (!email || !email.includes('@')) return null;
+    const domain = email.split('@')[1];
+    return `https://${domain}`;
+  }
+
+  getContactAvatar(): string {
+    const name = this.getContactName();
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=3B82F6&color=fff&bold=true`;
   }
 
   /**

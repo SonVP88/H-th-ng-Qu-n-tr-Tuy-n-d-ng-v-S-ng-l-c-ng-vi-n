@@ -5,6 +5,8 @@ import { BaseChartDirective } from 'ng2-charts';
 import { Chart, ChartConfiguration, ChartData, registerables } from 'chart.js';
 import { ReportService, ReportDashboardDto, ReportChartsDto } from '../../../services/report.service';
 import { saveAs } from 'file-saver';
+import { ToastService } from '../../../services/toast.service';
+import { PopupService } from '../../../services/popup.service';
 
 // Register Chart.js components
 Chart.register(...registerables);
@@ -149,6 +151,8 @@ export class Reports implements OnInit {
   public trendChartType = 'line' as const;
 
   private cdr = inject(ChangeDetectorRef);
+  private toast = inject(ToastService);
+  private popup = inject(PopupService);
   selectedYear = new Date().getFullYear();
   years: number[] = [];
 
@@ -182,7 +186,13 @@ export class Reports implements OnInit {
       },
       error: (err) => {
         console.error('Lỗi xuất Excel:', err);
-        alert('Không thể xuất Excel. Vui lòng thử lại sau.');
+        this.toast.error('Xuất Excel thất bại', 'Không thể xuất Excel. Vui lòng thử lại sau.');
+        void this.popup.alert({
+          title: 'Không thể xuất Excel',
+          message: 'Hệ thống chưa thể xuất file báo cáo lúc này. Vui lòng thử lại sau ít phút.',
+          confirmText: 'Đã hiểu',
+          tone: 'danger',
+        });
       }
     });
   }

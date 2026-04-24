@@ -19,6 +19,8 @@ export class Login implements AfterViewInit {
   forgotPasswordForm: FormGroup;
   showPassword = false;
   isForgotPasswordMode = false;
+  private googleRetryCount = 0;
+  private readonly MAX_GOOGLE_RETRIES = 5;
 
   constructor(
     private fb: FormBuilder,
@@ -64,32 +66,45 @@ export class Login implements AfterViewInit {
   }
 
   ngAfterViewInit(): void {
-    this.initGoogleButton();
+    // Thêm delay nhỏ để ensure DOM fully ready trước khi init Google button
+    setTimeout(() => this.initGoogleButton(), 100);
   }
 
   initGoogleButton(): void {
     const google = (window as any).google;
     if (!google) {
-      // SDK chưa load xong, thử lại sau 500ms
+      this.googleRetryCount++;
+      
+      // Nếu vượt quá max retries, log error và stop (không block UI)
+      if (this.googleRetryCount >= this.MAX_GOOGLE_RETRIES) {
+        console.warn('⚠️ Google SDK failed to load after ' + this.MAX_GOOGLE_RETRIES + ' retries');
+        return;
+      }
+      
+      // Retry sau 500ms
       setTimeout(() => this.initGoogleButton(), 500);
       return;
     }
 
-    google.accounts.id.initialize({
-      client_id: '731740261588-jno35lom7hluee8n0oh9u5tqn7i437kb.apps.googleusercontent.com',
-      callback: (response: any) => this.handleGoogleCallback(response)
-    });
-
-    const btnDiv = document.getElementById('google-login-btn');
-    if (btnDiv) {
-      google.accounts.id.renderButton(btnDiv, {
-        theme: 'outline',
-        size: 'large',
-        shape: 'rectangular',
-        width: btnDiv.offsetWidth || 360,
-        text: 'signin_with',
-        logo_alignment: 'center'
+    try {
+      google.accounts.id.initialize({
+        client_id: '731740261588-jno35lom7hluee8n0oh9u5tqn7i437kb.apps.googleusercontent.com',
+        callback: (response: any) => this.handleGoogleCallback(response)
       });
+
+      const btnDiv = document.getElementById('google-login-btn');
+      if (btnDiv) {
+        google.accounts.id.renderButton(btnDiv, {
+          theme: 'outline',
+          size: 'large',
+          shape: 'rectangular',
+          width: btnDiv.offsetWidth || 360,
+          text: 'signin_with',
+          logo_alignment: 'center'
+        });
+      }
+    } catch (error) {
+      console.error(' Error initializing Google button:', error);
     }
   }
 

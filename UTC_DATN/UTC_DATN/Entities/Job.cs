@@ -19,6 +19,10 @@ public partial class Job
 
     public string EmploymentType { get; set; }
 
+    public string ExperienceLevel { get; set; }
+
+    public string SeniorityLevel { get; set; }
+
     public decimal? SalaryMin { get; set; }
 
     public decimal? SalaryMax { get; set; }

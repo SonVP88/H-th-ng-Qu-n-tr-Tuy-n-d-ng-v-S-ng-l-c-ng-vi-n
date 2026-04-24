@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using UTC_DATN.Data;
 using UTC_DATN.DTOs.Interview;
 using UTC_DATN.DTOs;
@@ -11,19 +12,19 @@ public class InterviewService : IInterviewService
 {
     private readonly UTC_DATNContext _context;
     private readonly ILogger<InterviewService> _logger;
-    private readonly IEmailService _emailService;
     private readonly INotificationService _notificationService;
+    private readonly IServiceScopeFactory _scopeFactory;
 
     public InterviewService(
         UTC_DATNContext context, 
         ILogger<InterviewService> logger,
-        IEmailService emailService,
-        INotificationService notificationService)
+        INotificationService notificationService,
+        IServiceScopeFactory scopeFactory)
     {
         _context = context;
         _logger = logger;
-        _emailService = emailService;
         _notificationService = notificationService;
+        _scopeFactory = scopeFactory;
     }
 
     /// <summary>
@@ -115,11 +116,12 @@ public class InterviewService : IInterviewService
                 var jobTitle = application.Job?.Title ?? "Vị trí tuyển dụng";
 
                 // Tạo HTML template chuyên nghiệp
+                var location = dto.MeetingLink ?? dto.Location ?? "Sẽ cung cấp sau";
                 var emailBody = GenerateInterviewInvitationHtml(
                     candidateName,
                     jobTitle,
                     dto.ScheduledStart,
-                    dto.MeetingLink ?? dto.Location,
+                    location,
                     dto.MeetingLink != null
                 );
 
@@ -136,11 +138,16 @@ public class InterviewService : IInterviewService
                     ccEmails.Add(hrUser.Email);
                 }
 
-                // Gửi email
-                await _emailService.SendEmailWithCcAsync(candidateEmail, ccEmails, subject, emailBody);
-                
-                _logger.LogInformation("📧 Email lên lịch phỏng vấn đã được gửi đến {CandidateEmail} (CC: {CcCount})", 
-                    candidateEmail, ccEmails.Count);
+                if (!string.IsNullOrWhiteSpace(candidateEmail))
+                {
+                    QueueInterviewInvitationEmail(candidateEmail, ccEmails, subject, emailBody);
+                    _logger.LogInformation("📨 Đã đưa email mời phỏng vấn vào hàng đợi gửi nền cho {CandidateEmail} (CC: {CcCount})",
+                        candidateEmail, ccEmails.Count);
+                }
+                else
+                {
+                    _logger.LogWarning("⚠️ Không có email ứng viên cho ApplicationId: {ApplicationId}, bỏ qua gửi email", dto.ApplicationId);
+                }
             }
             catch (Exception emailEx)
             {
@@ -164,7 +171,7 @@ public class InterviewService : IInterviewService
                 }
                 catch (Exception notifEx)
                 {
-                    _logger.LogError(notifEx, "❌ Lỗi khi tạo thông báo cho User {UserId}", application.Candidate.UserId);
+                    _logger.LogError(notifEx, " Lỗi khi tạo thông báo cho User {UserId}", application.Candidate.UserId);
                 }
             }
 
@@ -182,16 +189,35 @@ public class InterviewService : IInterviewService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Lỗi khi tạo thông báo cho Interviewer {UserId}", dto.InterviewerId);
+                _logger.LogError(ex, " Lỗi khi tạo thông báo cho Interviewer {UserId}", dto.InterviewerId);
             }
 
             return interview.InterviewId;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "❌ Error scheduling interview for ApplicationId: {ApplicationId}", dto.ApplicationId);
+            _logger.LogError(ex, " Error scheduling interview for ApplicationId: {ApplicationId}", dto.ApplicationId);
             throw;
         }
+    }
+
+    private void QueueInterviewInvitationEmail(string toEmail, List<string> ccEmails, string subject, string htmlBody)
+    {
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                using var scope = _scopeFactory.CreateScope();
+                var scopedEmailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
+                await scopedEmailService.SendEmailWithCcAsync(toEmail, ccEmails, subject, htmlBody);
+
+                _logger.LogInformation("📧 Đã gửi email mời phỏng vấn nền đến {ToEmail}", toEmail);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "⚠️ Gửi email mời phỏng vấn nền thất bại cho {ToEmail}", toEmail);
+            }
+        });
     }
 
     /// <summary>
@@ -342,7 +368,7 @@ public class InterviewService : IInterviewService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "❌ Error submitting evaluation for InterviewId: {InterviewId}", dto.InterviewId);
+            _logger.LogError(ex, " Error submitting evaluation for InterviewId: {InterviewId}", dto.InterviewId);
             throw;
         }
     }
@@ -460,7 +486,7 @@ public class InterviewService : IInterviewService
         catch (Exception ex)
         {
             totalSw.Stop();
-            _logger.LogError(ex, "❌ Error getting interview schedule for InterviewerId: {InterviewerId} - Time: {TotalMs}ms", 
+            _logger.LogError(ex, " Error getting interview schedule for InterviewerId: {InterviewerId} - Time: {TotalMs}ms", 
                 interviewerId, totalSw.ElapsedMilliseconds);
             throw;
         }

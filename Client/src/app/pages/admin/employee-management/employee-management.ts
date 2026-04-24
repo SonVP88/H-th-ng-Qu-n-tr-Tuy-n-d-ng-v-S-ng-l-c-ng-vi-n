@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, FormsModule } 
 import { Router } from '@angular/router';
 import { EmployeeService, EmployeeDto, CreateEmployeeRequest } from '../../../services/employee';
 import { ToastService } from '../../../services/toast.service';
+import { PopupService } from '../../../services/popup.service';
 
 @Component({
   selector: 'app-employee-management',
@@ -18,6 +19,7 @@ export class EmployeeManagement implements OnInit {
   private cdr = inject(ChangeDetectorRef);
   private router = inject(Router);
   private toast = inject(ToastService);
+  private popup = inject(PopupService);
 
   employees = signal<EmployeeDto[]>([]);
   isLoading = signal(false);
@@ -150,24 +152,10 @@ export class EmployeeManagement implements OnInit {
         this.cdr.detectChanges();
       },
       error: (error) => {
-        console.error(' Error creating employee:', error);
+        const errorMessage = error?.error?.message || 'Không thể tạo nhân viên. Vui lòng thử lại.';
+        this.errorMessage.set(errorMessage);
+        this.toast.error('Lỗi', errorMessage);
         this.isLoading.set(false);
-
-        // Xử lý error message
-        if (error.error?.message) {
-          this.errorMessage.set(error.error.message);
-          this.toast.error('Lỗi', error.error.message);
-        } else if (error.status === 400) {
-          this.errorMessage.set('Email đã tồn tại hoặc dữ liệu không hợp lệ');
-          this.toast.error('Lỗi', 'Email đã tồn tại hoặc dữ liệu không hợp lệ');
-        } else if (error.status === 403) {
-          this.errorMessage.set('Bạn không có quyền thực hiện thao tác này');
-          this.toast.warning('Cảnh báo', 'Bạn không có quyền thực hiện thao tác này');
-        } else {
-          this.errorMessage.set('Có lỗi xảy ra. Vui lòng thử lại.');
-          this.toast.error('Lỗi', 'Có lỗi xảy ra. Vui lòng thử lại.');
-        }
-
         this.cdr.detectChanges();
       }
     });
@@ -316,8 +304,9 @@ export class EmployeeManagement implements OnInit {
       },
       error: (error) => {
         console.error(' Error updating employee:', error);
-        this.errorMessage.set('Không thể cập nhật nhân viên. Email có thể đã tồn tại.');
-        this.toast.error('Cập nhật thất bại', 'Không thể cập nhật nhân viên. Email có thể đã tồn tại.');
+        const errorMessage = error?.error?.message || 'Không thể cập nhật nhân viên. Vui lòng thử lại.';
+        this.errorMessage.set(errorMessage);
+        this.toast.error('Cập nhật thất bại', errorMessage);
         this.isLoading.set(false);
         this.cdr.detectChanges();
       }
@@ -327,8 +316,15 @@ export class EmployeeManagement implements OnInit {
   /**
    * Reactivate employee
    */
-  reactivateEmployee(userId: string): void {
-    if (!confirm('Bạn có chắc chắn muốn kích hoạt lại nhân viên này?')) {
+  async reactivateEmployee(userId: string): Promise<void> {
+    const confirmed = await this.popup.confirm({
+      title: 'Kích hoạt lại tài khoản',
+      message: 'Bạn có chắc chắn muốn kích hoạt lại nhân viên này?',
+      confirmText: 'Kích hoạt',
+      cancelText: 'Hủy',
+      tone: 'primary',
+    });
+    if (!confirmed) {
       return;
     }
 
@@ -361,12 +357,12 @@ export class EmployeeManagement implements OnInit {
   /**
    * Delete (deactivate) employee - with pending interviews check
    */
-  deleteEmployee(userId: string, employeeName: string, employeeRole: string): void {
+  async deleteEmployee(userId: string, employeeName: string, employeeRole: string): Promise<void> {
     this.isLoading.set(true);
 
     // Bước 1: Kiểm tra lịch phỏng vấn còn lại
     this.employeeService.getPendingInterviews(userId).subscribe({
-      next: (data) => {
+      next: async (data) => {
         this.isLoading.set(false);
 
         let confirmMessage = `Bạn có chắc muốn khóa tài khoản "${employeeName}" (${employeeRole})?`;
@@ -387,10 +383,26 @@ export class EmployeeManagement implements OnInit {
             + `Nếu khóa tài khoản, người phỏng vấn này sẽ không thể đăng nhập để thực hiện các buổi phỏng vấn đó.\nBạn vẫn muốn tiếp tục khóa?`;
         }
 
-        if (!confirm(confirmMessage)) return;
+        const confirmed = await this.popup.confirm({
+          title: 'Xác nhận khóa tài khoản',
+          message: confirmMessage,
+          confirmText: 'Khóa tài khoản',
+          cancelText: 'Hủy',
+          tone: 'danger',
+        });
+        if (!confirmed) return;
 
         // Bước 2: Yêu cầu nhập lý do khóa
-        const reason = window.prompt('Nhập lý do khóa tài khoản (có thể bỏ trống):') ?? undefined;
+        const reasonInput = await this.popup.prompt({
+          title: 'Lý do khóa tài khoản',
+          message: 'Nhập lý do khóa tài khoản (có thể bỏ trống).',
+          placeholder: 'Nhập lý do...',
+          confirmText: 'Tiếp tục',
+          cancelText: 'Bỏ qua',
+          tone: 'neutral',
+          multiline: true,
+        });
+        const reason = reasonInput === null ? undefined : reasonInput;
 
         // Bước 3: Gọi API khóa
         this.isLoading.set(true);
@@ -403,17 +415,26 @@ export class EmployeeManagement implements OnInit {
             this.cdr.detectChanges();
           },
           error: (error) => {
-            this.errorMessage.set('Không thể vô hiệu hóa nhân viên. Vui lòng thử lại.');
-            this.toast.error('Lỗi', 'Không thể vô hiệu hóa nhân viên. Vui lòng thử lại.');
+            // Extract error message từ API response
+            const errorMessage = error?.error?.message || 'Không thể vô hiệu hóa nhân viên. Vui lòng thử lại.';
+            this.errorMessage.set(errorMessage);
+            this.toast.error('Lỗi', errorMessage);
             this.isLoading.set(false);
             this.cdr.detectChanges();
           }
         });
       },
-      error: () => {
+      error: async () => {
         // Nếu không kiểm tra được, vẫn cho phép khóa nhưng cảnh báo không kiểm tra được
         this.isLoading.set(false);
-        if (!confirm(`Bạn có chắc muốn khóa tài khoản "${employeeName}"? (Không kiểm tra được lịch phỏng vấn)`)) return;
+        const confirmed = await this.popup.confirm({
+          title: 'Không kiểm tra được lịch phỏng vấn',
+          message: `Bạn có chắc muốn khóa tài khoản "${employeeName}"?`,
+          confirmText: 'Vẫn khóa tài khoản',
+          cancelText: 'Hủy',
+          tone: 'danger',
+        });
+        if (!confirmed) return;
         this.isLoading.set(true);
         this.employeeService.deactivateEmployee(userId).subscribe({
           next: () => {
@@ -421,8 +442,9 @@ export class EmployeeManagement implements OnInit {
             setTimeout(() => this.loadEmployees(), 1500);
             this.isLoading.set(false);
           },
-          error: () => {
-            this.toast.error('Lỗi', 'Không thể vô hiệu hóa.');
+          error: (error) => {
+            const errorMessage = error?.error?.message || 'Không thể vô hiệu hóa.';
+            this.toast.error('Lỗi', errorMessage);
             this.isLoading.set(false);
           }
         });

@@ -19,6 +19,10 @@ public class JobDetailDto
     
     public string? EmploymentType { get; set; }
 
+    public string? ExperienceLevel { get; set; }
+
+    public string? SeniorityLevel { get; set; }
+
     public string Status { get; set; }
     public DateTime? Deadline { get; set; }
     public DateTime CreatedAt { get; set; }

@@ -45,6 +45,42 @@
           class="text-sm text-red-500 mt-1">Vui lòng chọn loại hình công việc</div>
       </div>
       <div class="col-span-1 space-y-2">
+        <label class="text-sm font-medium text-[#0d121b] dark:text-gray-200" for="experience-level">Kinh nghiệm
+          <span class="text-red-500">*</span></label>
+        <div class="relative">
+          <select formControlName="experienceLevel"
+            class="w-full appearance-none rounded-lg border border-[#cfd7e7] dark:border-gray-600 bg-background-light dark:bg-background-dark px-4 py-3 text-sm text-[#0d121b] dark:text-white focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all"
+            [class.border-red-500]="jobForm.get('experienceLevel')?.invalid && jobForm.get('experienceLevel')?.touched"
+            id="experience-level">
+            <option value="" disabled>Chọn mức kinh nghiệm</option>
+            <option *ngFor="let option of experienceOptions" [value]="option">{{ option }}</option>
+          </select>
+          <div class="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#4c669a]">
+            <span class="material-symbols-outlined text-[20px]">expand_more</span>
+          </div>
+        </div>
+        <div *ngIf="jobForm.get('experienceLevel')?.invalid && jobForm.get('experienceLevel')?.touched"
+          class="text-sm text-red-500 mt-1">Vui lòng chọn mức kinh nghiệm</div>
+      </div>
+      <div class="col-span-1 space-y-2">
+        <label class="text-sm font-medium text-[#0d121b] dark:text-gray-200" for="seniority-level">Cấp bậc
+          <span class="text-red-500">*</span></label>
+        <div class="relative">
+          <select formControlName="seniorityLevel"
+            class="w-full appearance-none rounded-lg border border-[#cfd7e7] dark:border-gray-600 bg-background-light dark:bg-background-dark px-4 py-3 text-sm text-[#0d121b] dark:text-white focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all"
+            [class.border-red-500]="jobForm.get('seniorityLevel')?.invalid && jobForm.get('seniorityLevel')?.touched"
+            id="seniority-level">
+            <option value="" disabled>Chọn cấp bậc</option>
+            <option *ngFor="let option of seniorityOptions" [value]="option">{{ option }}</option>
+          </select>
+          <div class="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#4c669a]">
+            <span class="material-symbols-outlined text-[20px]">expand_more</span>
+          </div>
+        </div>
+        <div *ngIf="jobForm.get('seniorityLevel')?.invalid && jobForm.get('seniorityLevel')?.touched"
+          class="text-sm text-red-500 mt-1">Vui lòng chọn cấp bậc</div>
+      </div>
+      <div class="col-span-1 space-y-2">
         <label class="text-sm font-medium text-[#0d121b] dark:text-gray-200" for="province">
           Tỉnh/Thành phố <span class="text-red-500">*</span>
         </label>

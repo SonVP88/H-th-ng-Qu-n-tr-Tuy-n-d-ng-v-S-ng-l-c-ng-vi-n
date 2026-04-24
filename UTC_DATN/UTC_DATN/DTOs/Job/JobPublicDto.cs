@@ -13,6 +13,8 @@ namespace UTC_DATN.DTOs.Job
         public decimal? SalaryMin { get; set; }
         public decimal? SalaryMax { get; set; }
         public string JobType { get; set; }
+        public string ExperienceLevel { get; set; }
+        public string SeniorityLevel { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? Deadline { get; set; }
         public List<string> Skills { get; set; } = new List<string>();

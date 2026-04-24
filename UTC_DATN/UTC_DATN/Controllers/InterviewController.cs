@@ -172,7 +172,7 @@ public class InterviewController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "❌ Error getting my interview schedule");
+            _logger.LogError(ex, " Error getting my interview schedule");
             return StatusCode(500, new 
             { 
                 success = false, 

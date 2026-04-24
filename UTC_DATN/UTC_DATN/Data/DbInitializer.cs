@@ -7,7 +7,7 @@ namespace UTC_DATN.Data
     {
         public static async Task InitializeAsync(UTC_DATNContext context)
         {
-            // Đảm bảo database đã được tạo
+            // Đảm bảo database đã được tạoz
             await context.Database.EnsureCreatedAsync();
 
             await SeedRolesAsync(context);

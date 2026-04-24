@@ -95,7 +95,7 @@ namespace UTC_DATN.Services.Implements
             }
             catch (Exception ex)
             {
-                _logger.LogError($"❌ Lỗi kiểm tra SLA alerts: {ex.Message}");
+                _logger.LogError($" Lỗi kiểm tra SLA alerts: {ex.Message}");
             }
         }
 

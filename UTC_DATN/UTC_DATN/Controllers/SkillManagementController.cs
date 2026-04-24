@@ -8,7 +8,6 @@ namespace UTC_DATN.Controllers
 {
     [ApiController]
     [Route("api/admin/skills")]
-    [Authorize(Roles = "ADMIN")]
     public class SkillManagementController : ControllerBase
     {
         private readonly UTC_DATNContext _context;
@@ -19,9 +18,10 @@ namespace UTC_DATN.Controllers
         }
 
         /// <summary>
-        /// Lấy danh sách tất cả Skills (có phân trang và tìm kiếm)
+        /// Lấy danh sách tất cả Skills (HR/Interviewer được VIEW, Admin được FULL)
         /// </summary>
         [HttpGet]
+        [Authorize(Roles = "ADMIN,HR,INTERVIEW")]
         public async Task<IActionResult> GetSkills([FromQuery] string? search, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
         {
             var query = _context.Skills.AsQueryable();
@@ -53,6 +53,7 @@ namespace UTC_DATN.Controllers
         /// Thêm Skill mới
         /// </summary>
         [HttpPost]
+        [Authorize(Roles = "ADMIN")]
         public async Task<IActionResult> CreateSkill([FromBody] CreateSkillRequest request)
         {
             if (string.IsNullOrWhiteSpace(request.Name))
@@ -87,6 +88,7 @@ namespace UTC_DATN.Controllers
         /// Cập nhật Skill
         /// </summary>
         [HttpPut("{id}")]
+        [Authorize(Roles = "ADMIN")]
         public async Task<IActionResult> UpdateSkill(Guid id, [FromBody] CreateSkillRequest request)
         {
             var skill = await _context.Skills.FindAsync(id);
@@ -121,6 +123,7 @@ namespace UTC_DATN.Controllers
         /// Khóa / Mở khóa Skill
         /// </summary>
         [HttpDelete("{id}")]
+        [Authorize(Roles = "ADMIN")]
         public async Task<IActionResult> ToggleDeleteSkill(Guid id)
         {
             var skill = await _context.Skills

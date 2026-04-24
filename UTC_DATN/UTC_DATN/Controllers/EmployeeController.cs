@@ -22,10 +22,10 @@ namespace UTC_DATN.Controllers
         }
 
         /// <summary>
-        /// Lấy danh sách nhân viên (HR và INTERVIEWER)
+        /// Lấy danh sách nhân viên (HR được VIEW, Admin được FULL)
         /// </summary>
         [HttpGet]
-        [Authorize(Roles = "ADMIN")]
+        [Authorize(Roles = "ADMIN,HR")]
         public async Task<IActionResult> GetEmployees()
         {
             var employees = await _employeeService.GetEmployeesAsync();
@@ -78,10 +78,10 @@ namespace UTC_DATN.Controllers
     }
 
         /// <summary>
-        /// Tạo nhân viên mới (HR hoặc INTERVIEWER)
+        /// Tạo nhân viên mới (HR được tạo Interviewer, Admin được FULL)
         /// </summary>
         [HttpPost]
-        [Authorize(Roles = "ADMIN")]
+        [Authorize(Roles = "ADMIN,HR")]
         public async Task<IActionResult> CreateEmployee([FromBody] CreateEmployeeRequest request)
         {
             if (!ModelState.IsValid)
@@ -100,7 +100,7 @@ namespace UTC_DATN.Controllers
         }
 
         [HttpGet("{id}/pending-interviews")]
-        [Authorize(Roles = "ADMIN")]
+        [Authorize(Roles = "ADMIN,HR")]
         public async Task<IActionResult> GetPendingInterviews(Guid id)
         {
             var pendingInterviews = await _context.Interviews
@@ -129,9 +129,16 @@ namespace UTC_DATN.Controllers
 
 
         [HttpPut("{id}/deactivate")]
-        [Authorize(Roles = "ADMIN")]
+        [Authorize]
         public async Task<IActionResult> DeactivateEmployee(Guid id, [FromBody] DeactivateRequest? request = null)
         {
+            // Check authorization - HR không được phép
+            var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "";
+            if (userRole != "ADMIN")
+            {
+                return StatusCode(403, new { message = " Bạn không có quyền khóa tài khoản nhân viên. Chỉ Admin mới có quyền này." });
+            }
+
             if (!Guid.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out Guid adminId))
                 return Unauthorized();
             var fullName = User.FindFirst("FullName")?.Value ?? "User";
@@ -147,9 +154,16 @@ namespace UTC_DATN.Controllers
         }
 
         [HttpPut("{id}/reactivate")]
-        [Authorize(Roles = "ADMIN")]
+        [Authorize]
         public async Task<IActionResult> ReactivateEmployee(Guid id)
         {
+            // Check authorization
+            var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "";
+            if (userRole != "ADMIN")
+            {
+                return StatusCode(403, new { message = " Bạn không có quyền kích hoạt tài khoản nhân viên. Chỉ Admin mới có quyền này." });
+            }
+            
             var result = await _employeeService.ReactivateEmployeeAsync(id);
             
             if (!result)
@@ -161,9 +175,16 @@ namespace UTC_DATN.Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize(Roles = "ADMIN")]
+        [Authorize]
         public async Task<IActionResult> UpdateEmployee(Guid id, [FromBody] CreateEmployeeRequest request)
         {
+            // Check authorization
+            var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "";
+            if (userRole != "ADMIN")
+            {
+                return StatusCode(403, new { message = " Bạn không có quyền chỉnh sửa thông tin nhân viên. Chỉ Admin mới có quyền này." });
+            }
+            
             var employee = await _employeeService.UpdateEmployeeAsync(id, request);
             
             if (employee == null)

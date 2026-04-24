@@ -258,7 +258,10 @@ export class Home implements OnInit {
     if (!dateString) return 'N/A';
 
     try {
-      const date = new Date(dateString);
+      // Backend may return datetime without timezone suffix. Treat it as UTC to avoid timezone drift.
+      const hasTimezone = /Z$|[+-]\d{2}:?\d{2}$/.test(dateString);
+      const normalizedDateString = hasTimezone ? dateString : `${dateString}Z`;
+      const date = new Date(normalizedDateString);
       const now = new Date();
       const diffTime = now.getTime() - date.getTime();
       const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));

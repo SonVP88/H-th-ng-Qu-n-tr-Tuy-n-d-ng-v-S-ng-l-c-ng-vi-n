@@ -34,6 +34,13 @@ public class CreateJobRequest : IValidatableObject
     [Required(ErrorMessage = "Loại hình công việc là bắt buộc")]
     public string EmploymentType { get; set; } = string.Empty;
 
+    [Required(ErrorMessage = "Mức kinh nghiệm là bắt buộc")]
+    [StringLength(100)]
+    public string ExperienceLevel { get; set; } = string.Empty;
+
+    [StringLength(100)]
+    public string? SeniorityLevel { get; set; }
+
     [Required(ErrorMessage = "Hạn nộp hồ sơ là bắt buộc")]
     public DateTime? Deadline { get; set; }
 

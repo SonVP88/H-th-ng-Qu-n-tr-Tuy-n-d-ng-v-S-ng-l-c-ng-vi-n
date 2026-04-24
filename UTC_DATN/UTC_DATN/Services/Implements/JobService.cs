@@ -38,6 +38,8 @@ public class JobService : IJobService
                 SalaryMax = request.SalaryMax,
                 Location = request.Location,
                 EmploymentType = request.EmploymentType,
+                ExperienceLevel = request.ExperienceLevel,
+                SeniorityLevel = request.SeniorityLevel,
                 Deadline = request.Deadline,
                 CreatedBy = userId,
                 Status = "OPEN",
@@ -116,6 +118,8 @@ public class JobService : IJobService
             job.SalaryMax = request.SalaryMax;
             job.Location = request.Location;
             job.EmploymentType = request.EmploymentType;
+            job.ExperienceLevel = request.ExperienceLevel;
+            job.SeniorityLevel = request.SeniorityLevel;
             job.Deadline = request.Deadline;
 
             // Auto-update Status based on deadline:
@@ -326,6 +330,8 @@ public class JobService : IJobService
             SalaryMax = j.SalaryMax,
             Location = j.Location,
             EmploymentType = j.EmploymentType,
+            ExperienceLevel = j.ExperienceLevel,
+            SeniorityLevel = j.SeniorityLevel,
             Deadline = j.Deadline,
             CreatedDate = j.CreatedAt,
             Skills = j.JobSkillMaps.Select(jsm => jsm.Skill.Name).ToList()
@@ -387,6 +393,8 @@ public class JobService : IJobService
             SalaryMax = job.SalaryMax,
             Location = job.Location,
             EmploymentType = job.EmploymentType,
+            ExperienceLevel = job.ExperienceLevel,
+            SeniorityLevel = job.SeniorityLevel,
             Deadline = job.Deadline,
             CreatedDate = job.CreatedAt,
             Skills = job.JobSkillMaps.Select(jsm => jsm.Skill.Name).ToList(),
@@ -484,6 +492,8 @@ public class JobService : IJobService
             SalaryMin = j.SalaryMin,
             SalaryMax = j.SalaryMax,
             JobType = j.EmploymentType,
+            ExperienceLevel = j.ExperienceLevel,
+            SeniorityLevel = j.SeniorityLevel,
             CreatedAt = j.CreatedAt,
             Skills = j.JobSkillMaps.Select(jsm => jsm.Skill.Name).ToList()
         }).ToListAsync();
@@ -525,6 +535,8 @@ public class JobService : IJobService
                 SalaryMax = j.SalaryMax,
                 Location = j.Location,
                 EmploymentType = j.EmploymentType,
+                ExperienceLevel = j.ExperienceLevel,
+                SeniorityLevel = j.SeniorityLevel,
                 Deadline = j.Deadline,
                 CreatedDate = j.CreatedAt,
                 Status = j.Status,

@@ -7,6 +7,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using UTC_DATN.Data;
 using UTC_DATN.Entities;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace UTC_DATN.Controllers
 {
@@ -15,23 +16,17 @@ namespace UTC_DATN.Controllers
     [Authorize]
     public class OfferController : ControllerBase
     {
-        private readonly IEmailService _emailService;
-        private readonly IInterviewService _interviewService;
-        private readonly IApplicationService _applicationService;
+        private readonly IServiceScopeFactory _scopeFactory;
         private readonly UTC_DATNContext _context;
         private readonly ILogger<OfferController> _logger;
         private const string OfferSnapshotPrefix = "[OFFER_SNAPSHOT]";
 
         public OfferController(
-            IEmailService emailService,
-            IInterviewService interviewService,
-            IApplicationService applicationService,
+            IServiceScopeFactory scopeFactory,
             UTC_DATNContext context,
             ILogger<OfferController> logger)
         {
-            _emailService = emailService;
-            _interviewService = interviewService;
-            _applicationService = applicationService;
+            _scopeFactory = scopeFactory;
             _context = context;
             _logger = logger;
         }
@@ -40,113 +35,139 @@ namespace UTC_DATN.Controllers
         /// Send Offer Letter Email
         /// </summary>
         [HttpPost("send-offer-letter")]
-        public async Task<IActionResult> SendOfferLetter([FromBody] SendOfferLetterDto dto)
+        public IActionResult SendOfferLetter([FromBody] SendOfferLetterDto dto)
         {
             try
             {
-                _logger.LogInformation("Sending offer letter to {Email}", dto.CandidateEmail);
-
-                // Generate Email HTML Content
-                string emailBody = GenerateOfferEmailHtml(dto);
-
-                // Parse CC Emails
-                List<string> ccEmails = new List<string>();
-                
-                // Add interviewer email if CC option is enabled
-                if (dto.CcInterviewer)
+                if (string.IsNullOrWhiteSpace(dto.CandidateEmail) || string.IsNullOrWhiteSpace(dto.CandidateName))
                 {
-                    try
+                    return BadRequest(new
                     {
-                        // Get Application with Interview relationship to find interviewer
-                        if (!string.IsNullOrEmpty(dto.ApplicationId) && Guid.TryParse(dto.ApplicationId, out Guid appId))
-                        {
-                            // Query Interview for this Application to get Interviewer
-                            var interview = await _interviewService.GetInterviewByApplicationIdAsync(appId);
-                            
-                            if (interview != null && !string.IsNullOrEmpty(interview.InterviewerEmail))
-                            {
-                                ccEmails.Add(interview.InterviewerEmail);
-                                _logger.LogInformation("✅ Added interviewer {Email} to CC list", interview.InterviewerEmail);
-                            }
-                            else
-                            {
-                                _logger.LogWarning("⚠️ No interview or interviewer email found for ApplicationId: {ApplicationId}", appId);
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Failed to get interviewer email, skipping CC interviewer");
-                    }
+                        success = false,
+                        message = "Thiếu thông tin người nhận Offer"
+                    });
                 }
 
-                // Add additional CC emails
-                if (!string.IsNullOrWhiteSpace(dto.AdditionalCcEmails))
-                {
-                    var additionalEmails = dto.AdditionalCcEmails
-                        .Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
-                        .Select(email => email.Trim())
-                        .Where(email => !string.IsNullOrWhiteSpace(email));
-                    
-                    ccEmails.AddRange(additionalEmails);
-                }
+                var requestId = Guid.NewGuid().ToString("N");
+                var requestedBy = GetUserId();
 
-                // Send Email (handle CC emails properly)
-                if (ccEmails.Count > 0)
-                {
-                    // Use SendEmailWithCcAsync when CC emails exist
-                    await _emailService.SendEmailWithCcAsync(
-                        toEmail: dto.CandidateEmail,
-                        ccEmails: ccEmails,
-                        subject: $"[V9 TECH] THƯ MỜI NHẬN VIỆC - {dto.CandidateName}",
-                        body: emailBody
-                    );
-                }
-                else
-                {
-                    // Use SendEmailAsync when no CC
-                    await _emailService.SendEmailAsync(
-                        toEmail: dto.CandidateEmail,
-                        subject: $"[V9 TECH] THƯ MỜI NHẬN VIỆC - {dto.CandidateName}",
-                        body: emailBody
-                    );
-                }
+                _logger.LogInformation(
+                    "Queued offer email request {RequestId} for {Email}",
+                    requestId,
+                    dto.CandidateEmail
+                );
 
-                _logger.LogInformation("✅ Offer letter sent successfully to {Email}", dto.CandidateEmail);
+                QueueOfferLetterEmail(dto, requestId, requestedBy);
 
-                // Update Application Status to "Offer_Sent"
-                try
-                {
-                    if (!string.IsNullOrEmpty(dto.ApplicationId) && Guid.TryParse(dto.ApplicationId, out Guid applicationId))
-                    {
-                        await _applicationService.UpdateStatusAsync(applicationId, "Offer_Sent");
-                        await SaveOfferSnapshotAsync(applicationId, dto);
-                        _logger.LogInformation("✅ Updated application status to Offer_Sent for {ApplicationId}", applicationId);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "⚠️ Failed to update application status for {ApplicationId}, but email was sent successfully", dto.ApplicationId);
-                    // Don't fail the request - email was sent successfully
-                }
-
-                return Ok(new
+                return Accepted(new
                 {
                     success = true,
-                    message = "Đã gửi thành công email Offer Letter",
+                    message = "Yêu cầu gửi Offer đã được tiếp nhận. Hệ thống đang xử lý gửi email.",
+                    status = "queued",
+                    requestId,
                     sentTo = dto.CandidateEmail,
-                    ccCount = ccEmails.Count
+                    queuedAt = DateTime.UtcNow
                 });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Error sending offer letter to {Email}", dto.CandidateEmail);
+                _logger.LogError(ex, " Error sending offer letter to {Email}", dto.CandidateEmail);
                 return StatusCode(500, new
                 {
                     success = false,
                     message = "Có lỗi xảy ra khi gửi email Offer"
                 });
             }
+        }
+
+        private void QueueOfferLetterEmail(SendOfferLetterDto dto, string requestId, Guid requestedBy)
+        {
+            // Clone payload để tránh race condition nếu object bị mutate sau khi request kết thúc.
+            var payload = new SendOfferLetterDto
+            {
+                ApplicationId = dto.ApplicationId,
+                CandidateName = dto.CandidateName,
+                CandidateEmail = dto.CandidateEmail,
+                Position = dto.Position,
+                Salary = dto.Salary,
+                StartDate = dto.StartDate,
+                ExpiryDate = dto.ExpiryDate,
+                ContractType = dto.ContractType,
+                CcInterviewer = dto.CcInterviewer,
+                AdditionalCcEmails = dto.AdditionalCcEmails
+            };
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    using var scope = _scopeFactory.CreateScope();
+                    var emailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
+                    var interviewService = scope.ServiceProvider.GetRequiredService<IInterviewService>();
+                    var applicationService = scope.ServiceProvider.GetRequiredService<IApplicationService>();
+                    var dbContext = scope.ServiceProvider.GetRequiredService<UTC_DATNContext>();
+
+                    var emailBody = GenerateOfferEmailHtml(payload);
+                    var ccEmails = new List<string>();
+
+                    if (payload.CcInterviewer &&
+                        !string.IsNullOrWhiteSpace(payload.ApplicationId) &&
+                        Guid.TryParse(payload.ApplicationId, out var appIdForInterviewer))
+                    {
+                        try
+                        {
+                            var interview = await interviewService.GetInterviewByApplicationIdAsync(appIdForInterviewer);
+                            if (interview != null && !string.IsNullOrWhiteSpace(interview.InterviewerEmail))
+                            {
+                                ccEmails.Add(interview.InterviewerEmail);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "[{RequestId}] Failed to resolve interviewer email for CC", requestId);
+                        }
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(payload.AdditionalCcEmails))
+                    {
+                        var additionalEmails = payload.AdditionalCcEmails
+                            .Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
+                            .Select(email => email.Trim())
+                            .Where(email => !string.IsNullOrWhiteSpace(email));
+                        ccEmails.AddRange(additionalEmails);
+                    }
+
+                    if (ccEmails.Count > 0)
+                    {
+                        await emailService.SendEmailWithCcAsync(
+                            toEmail: payload.CandidateEmail,
+                            ccEmails: ccEmails,
+                            subject: $"[V9 TECH] THƯ MỜI NHẬN VIỆC - {payload.CandidateName}",
+                            body: emailBody
+                        );
+                    }
+                    else
+                    {
+                        await emailService.SendEmailAsync(
+                            toEmail: payload.CandidateEmail,
+                            subject: $"[V9 TECH] THƯ MỜI NHẬN VIỆC - {payload.CandidateName}",
+                            body: emailBody
+                        );
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(payload.ApplicationId) && Guid.TryParse(payload.ApplicationId, out var applicationId))
+                    {
+                        await applicationService.UpdateStatusAsync(applicationId, "Offer_Sent");
+                        await SaveOfferSnapshotAsync(dbContext, applicationId, payload, requestedBy);
+                    }
+
+                    _logger.LogInformation("[{RequestId}] Offer email processed successfully for {Email}", requestId, payload.CandidateEmail);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "[{RequestId}] Error while processing queued offer email for {Email}", requestId, dto.CandidateEmail);
+                }
+            });
         }
 
         /// <summary>
@@ -209,6 +230,9 @@ namespace UTC_DATN.Controllers
                     return NotFound(new { success = false, message = "Không đọc được dữ liệu Offer." });
                 }
 
+                // Convert CreatedAt to UTC ISO 8601 format for proper timezone handling on frontend
+                var utcDateTime = DateTime.SpecifyKind(note.CreatedAt, DateTimeKind.Utc);
+                
                 return Ok(new
                 {
                     success = true,
@@ -221,18 +245,18 @@ namespace UTC_DATN.Controllers
                         startDate = snapshot.StartDate,
                         expiryDate = snapshot.ExpiryDate,
                         contractType = snapshot.ContractType,
-                        offerSentAt = note.CreatedAt
+                        offerSentAt = utcDateTime.ToString("o")  // ISO 8601 format with Z suffix
                     }
                 });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Error getting offer detail for application {ApplicationId}", applicationId);
+                _logger.LogError(ex, " Error getting offer detail for application {ApplicationId}", applicationId);
                 return StatusCode(500, new { success = false, message = "Lỗi tải chi tiết Offer." });
             }
         }
 
-        private async Task SaveOfferSnapshotAsync(Guid applicationId, SendOfferLetterDto dto)
+        private static async Task SaveOfferSnapshotAsync(UTC_DATNContext context, Guid applicationId, SendOfferLetterDto dto, Guid createdBy)
         {
             var snapshot = new OfferSnapshotDto
             {
@@ -247,7 +271,6 @@ namespace UTC_DATN.Controllers
                 AdditionalCcEmails = dto.AdditionalCcEmails
             };
 
-            var createdBy = GetUserId();
             var note = new ApplicationNote
             {
                 ApplicationId = applicationId,
@@ -256,8 +279,8 @@ namespace UTC_DATN.Controllers
                 CreatedAt = DateTime.UtcNow
             };
 
-            _context.ApplicationNotes.Add(note);
-            await _context.SaveChangesAsync();
+            context.ApplicationNotes.Add(note);
+            await context.SaveChangesAsync();
         }
 
         private Guid GetUserId()

@@ -171,7 +171,7 @@
                                 <div>
                                     <p class="text-xs text-slate-500 font-medium uppercase tracking-wider">Kinh nghiệm
                                     </p>
-                                    <p class="text-slate-900 dark:text-white font-semibold">3 - 5 năm</p>
+                                    <p class="text-slate-900 dark:text-white font-semibold">{{ getExperienceLabel() }}</p>
                                 </div>
                             </div>
                             <div class="flex items-start gap-4">
@@ -181,7 +181,7 @@
                                 </div>
                                 <div>
                                     <p class="text-xs text-slate-500 font-medium uppercase tracking-wider">Cấp bậc</p>
-                                    <p class="text-slate-900 dark:text-white font-semibold">Senior</p>
+                                    <p class="text-slate-900 dark:text-white font-semibold">{{ getSeniorityLabel() }}</p>
                                 </div>
                             </div>
                         </div>
@@ -201,12 +201,11 @@
                         <div class="flex items-center gap-4 mb-4">
                             <div
                                 class="size-12 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden">
-                                <img alt="HR Manager avatar placeholder" class="w-full h-full object-cover"
-                                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuCmY9w5lR8BcjLEquEha6qscPHH9u9QAe7acmN3CeeU879qTI_chhPlyPu2cD7HGJyHuh-4eI3lgDulqx5nC4oK2v_aMfiY5bl4UnuoZX3jCZunxJ4ur-y8butcOqQdP9kt_Y5PsoudsKQi9acYbAKXclNYlWKE_1HFxZlZ3bC980gMAMsm2DoIg0gCpYbsRJCFqmcNY64JSeyRcDNH3DB1FwS_nCcP6nO9XKr9_Neeg26XTUK5kG3I8ng5yWJFS0yOkPDjBVw3FrzJ" />
+                                <img alt="Recruiter avatar" class="w-full h-full object-cover" [src]="getContactAvatar()" />
                             </div>
                             <div>
-                                <p class="text-slate-900 dark:text-white font-bold">Sarah Nguyen</p>
-                                <p class="text-xs text-slate-500">Quản lý nhân sự</p>
+                                <p class="text-slate-900 dark:text-white font-bold">{{ getContactName() }}</p>
+                                <p class="text-xs text-slate-500">Nhà tuyển dụng</p>
                             </div>
                         </div>
                         <div class="space-y-3">
@@ -219,13 +218,18 @@
                                     {{ job?.contactEmail }}
                                 </span>
                             </a>
-                            <a class="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors group"
-                                href="#">
+                            <a *ngIf="getWebsiteUrl()" class="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors group"
+                                [href]="getWebsiteUrl()" target="_blank" rel="noopener noreferrer">
                                 <span
                                     class="material-symbols-outlined text-slate-400 group-hover:text-primary">language</span>
                                 <span
-                                    class="text-sm text-slate-600 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white truncate">www.techsoft.com</span>
+                                    class="text-sm text-slate-600 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white truncate">{{ getWebsiteLabel() }}</span>
                             </a>
+                            <div *ngIf="!getWebsiteUrl()"
+                                class="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-500 text-sm">
+                                <span class="material-symbols-outlined text-slate-400">language</span>
+                                <span>Chưa cập nhật website</span>
+                            </div>
                         </div>
                         <!-- <button
                             class="w-full mt-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">

@@ -98,22 +98,9 @@ var app = builder.Build();
 // Seed initial data (Roles và Admin User)
 using (var scope = app.Services.CreateScope())
 {
-    var services = scope.ServiceProvider;
-    var context = services.GetRequiredService<UTC_DATNContext>();
-
-    // 1. Kiểm tra xem đã có kết nối chưa và tạo bảng nếu CHƯA CÓ GÌ
-    // Lệnh này nhẹ hơn nhiều vì nó chỉ tạo cấu trúc, không check phức tạp
-    //await context.Database.EnsureCreatedAsync();
-
-    // 2. Kiểm tra xem bảng đã có dữ liệu chưa trước khi Seed (Dập tắt lỗi tràn RAM)
-    // Ví dụ: Chỉ Seed dữ liệu nếu bảng Users chưa có ai
-    if (!context.Users.Any())
-    {
-        // Chỉ khi bảng trống mới gọi hàm tạo dữ liệu mẫu
-        await DbInitializer.InitializeAsync(context);
-    }
+    var context = scope.ServiceProvider.GetRequiredService<UTC_DATNContext>();
+    await DbInitializer.InitializeAsync(context);
 }
-
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {

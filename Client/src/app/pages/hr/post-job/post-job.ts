@@ -3,12 +3,12 @@ import { Component, OnInit, ChangeDetectorRef, NgZone } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, ValidatorFn, AbstractControl, ValidationErrors } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 
-import { BehaviorSubject, of, forkJoin } from 'rxjs';
-import { tap, catchError, finalize } from 'rxjs/operators';
+import { BehaviorSubject, forkJoin } from 'rxjs';
 
 import { MasterDataService, JobType, Skill, Province, Ward } from '../../../services/master-data.service';
 import { JobService, CreateJobRequest } from '../../../services/job.service';
 import { ToastService } from '../../../services/toast.service';
+import { PopupService } from '../../../services/popup.service';
 
 @Component({
   selector: 'app-post-job',
@@ -21,13 +21,29 @@ export class PostJob implements OnInit {
   jobForm!: FormGroup;
   jobTypes: JobType[] = [];
   skills: Skill[] = [];
+  readonly experienceOptions: string[] = [
+    'Không yêu cầu',
+    'Dưới 1 năm',
+    '1-2 năm',
+    '3-5 năm',
+    'Trên 5 năm'
+  ];
+  readonly seniorityOptions: string[] = [
+    'Intern',
+    'Fresher',
+    'Junior',
+    'Middle',
+    'Senior',
+    'Lead',
+    'Manager'
+  ];
 
   // Sử dụng BehaviorSubject để lưu state và support AsyncPipe
   provinces$ = new BehaviorSubject<Province[]>([]);
   wards$ = new BehaviorSubject<Ward[]>([]);
 
   selectedSkillIds: string[] = [];
-  selectedProvinceCode: number = 0;
+  selectedProvinceCode = 0;
   isSubmitting = false;
   skillsError = false;
 
@@ -42,14 +58,12 @@ export class PostJob implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private ngZone: NgZone,
-    private toast: ToastService
+    private toast: ToastService,
+    private popup: PopupService
   ) { }
 
   ngOnInit(): void {
-    // Khởi tạo form với validation
     this.initForm();
-
-    // Gọi API để lấy dữ liệu Master Data
     this.loadMasterData();
 
     // Listen to province changes to reset/load wards
@@ -73,6 +87,8 @@ export class PostJob implements OnInit {
     this.jobForm = this.fb.group({
       title: ['', [Validators.required, Validators.minLength(10), Validators.maxLength(200)]],
       employmentType: ['', Validators.required],
+      experienceLevel: ['', Validators.required],
+      seniorityLevel: ['', Validators.required],
       province: [null, [Validators.required, Validators.min(1)]],
       ward: [null],
       salaryMin: [null, [Validators.min(0)]],
@@ -89,9 +105,11 @@ export class PostJob implements OnInit {
   private futureDateValidator: ValidatorFn = (control: AbstractControl): ValidationErrors | null => {
     const dateStr = control.value;
     if (!dateStr) return null;
+
     const selectedDate = new Date(dateStr);
     const today = new Date();
     today.setHours(0, 0, 0, 0); // Reset time to midnight
+
     if (selectedDate <= today) {
       return { futureDate: true };
     }
@@ -108,13 +126,14 @@ export class PostJob implements OnInit {
         control.get('salaryMax')?.setErrors({ ...control.get('salaryMax')?.errors, salaryRange: true });
       }
       return { salaryRange: true };
-    } else {
-      if (control.get('salaryMax')?.hasError('salaryRange')) {
-        const errors = { ...control.get('salaryMax')?.errors };
-        delete (errors as any).salaryRange;
-        control.get('salaryMax')?.setErrors(Object.keys(errors).length > 0 ? errors : null);
-      }
     }
+
+    if (control.get('salaryMax')?.hasError('salaryRange')) {
+      const errors = { ...control.get('salaryMax')?.errors };
+      delete (errors as any).salaryRange;
+      control.get('salaryMax')?.setErrors(Object.keys(errors).length > 0 ? errors : null);
+    }
+
     return null;
   };
 
@@ -128,6 +147,8 @@ export class PostJob implements OnInit {
         this.jobForm.patchValue({
           title: job.title,
           employmentType: job.employmentType,
+          experienceLevel: job.experienceLevel || this.extractExperienceLevel(job.requirements),
+          seniorityLevel: job.seniorityLevel || this.extractSeniorityFromTitle(job.title),
           salaryMin: job.salaryMin,
           salaryMax: job.salaryMax,
           description: job.description,
@@ -149,13 +170,8 @@ export class PostJob implements OnInit {
             const provinceName = parts[parts.length - 1]; // Last part is province
             const wardName = parts[parts.length - 2]; // Second to last is ward (usually)
 
-            // Find province in loaded provinces (might not be loaded yet, wait for it)
-            // Since master stats load async, we might need a better way.
-            // But usually master data is fast. Let's subscribe to provinces$
             this.provinces$.subscribe(provinces => {
               if (provinces.length > 0) {
-                // Find province by name (ignore case or minor diffs?)
-                // Simple check
                 const province = provinces.find(p => p.name.includes(provinceName) || provinceName.includes(p.name));
                 if (province) {
                   this.jobForm.patchValue({ province: province.code });
@@ -246,7 +262,6 @@ export class PostJob implements OnInit {
    * Xử lý khi chọn tỉnh/thành phố - V2 API load wards trực tiếp
    */
   onProvinceChange(provinceCode: any): void {
-
     if (this.selectedProvinceCode === provinceCode) return;
 
     this.wards$.next([]);
@@ -315,17 +330,18 @@ export class PostJob implements OnInit {
       salaryMax: formValue.salaryMax ? Number(formValue.salaryMax) : undefined,
       location: fullAddress,  // Lưu địa chỉ đầy đủ: "Phường X, Tỉnh Y" (V2 API)
       employmentType: formValue.employmentType,
+      experienceLevel: formValue.experienceLevel,
+      seniorityLevel: formValue.seniorityLevel,
       deadline: formValue.deadline ? `${formValue.deadline}T12:00:00Z` : undefined,
       skillIds: this.selectedSkillIds
     };
 
-    console.log('Submitting job data:', jobData);
     this.isSubmitting = true;
 
     if (this.isEditMode && this.jobId) {
       // Update
       this.jobService.updateJob(this.jobId, jobData).subscribe({
-        next: (response) => {
+        next: () => {
           this.toast.success('Thành công', 'Cập nhật tin tuyển dụng thành công!');
           this.router.navigate(['/hr/jobs']);
         },
@@ -342,7 +358,7 @@ export class PostJob implements OnInit {
     } else {
       // Create
       this.jobService.createJob(jobData).subscribe({
-        next: (response) => {
+        next: () => {
           this.toast.success('Thành công', 'Đăng tin tuyển dụng thành công!');
 
           // Reset form và selected skills
@@ -372,6 +388,8 @@ export class PostJob implements OnInit {
     // Reset về giá trị mặc định cho các select
     this.jobForm.patchValue({
       employmentType: '',
+      experienceLevel: '',
+      seniorityLevel: '',
       province: null,
       ward: null
     });
@@ -380,13 +398,59 @@ export class PostJob implements OnInit {
   /**
    * Hủy và quay lại
    */
-  onCancel(): void {
-    if (confirm('Bạn có chắc muốn hủy? Tất cả dữ liệu đã nhập sẽ bị mất.')) {
+  async onCancel(): Promise<void> {
+    const confirmed = await this.popup.confirm({
+      title: 'Xác nhận hủy',
+      message: 'Bạn có chắc muốn hủy? Tất cả dữ liệu đã nhập sẽ bị mất.',
+      confirmText: 'Hủy',
+      cancelText: 'Không',
+      tone: 'danger',
+    });
+    if (confirmed) {
       if (this.isEditMode) {
         this.router.navigate(['/hr/jobs']);
       } else {
         this.resetForm();
       }
     }
+  }
+
+  private extractExperienceLevel(requirements?: string | null): string {
+    if (!requirements) return '';
+
+    const lines = requirements
+      .split('\n')
+      .map(line => line.trim())
+      .filter(Boolean);
+
+    const expLine = lines.find(line => /^Kinh nghiệm\s*:/i.test(line));
+    if (!expLine) return '';
+
+    const value = expLine.replace(/^Kinh nghiệm\s*:/i, '').trim();
+    return this.experienceOptions.includes(value) ? value : '';
+  }
+
+  private cleanRequirementsText(requirements?: string | null): string {
+    if (!requirements) return '';
+
+    return requirements
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line.length > 0 && !/^Kinh nghiệm\s*:/i.test(line))
+      .join('\n')
+      .trim();
+  }
+
+  private extractSeniorityFromTitle(title?: string | null): string {
+    if (!title) return '';
+    const normalized = title.toLowerCase();
+    if (normalized.includes('intern') || normalized.includes('thực tập')) return 'Intern';
+    if (normalized.includes('fresher')) return 'Fresher';
+    if (normalized.includes('junior')) return 'Junior';
+    if (normalized.includes('senior')) return 'Senior';
+    if (normalized.includes('lead')) return 'Lead';
+    if (normalized.includes('manager')) return 'Manager';
+    if (normalized.includes('mid')) return 'Middle';
+    return '';
   }
 }

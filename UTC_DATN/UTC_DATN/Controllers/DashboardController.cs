@@ -129,7 +129,7 @@ public class DashboardController : ControllerBase
                 {
                     Type = "new_application",
                     Title = $"Ứng tuyển mới: {a.Job!.Title}",
-                    Description = $"{a.Candidate!.FullName} đã nộp hồ sơ qua {a.Source ?? "Website"}.",
+                    Description = $"{a.ContactName ?? a.Candidate!.FullName} đã nộp hồ sơ qua {a.Source ?? "Website"}.",
                     Timestamp = a.AppliedAt,
                     Icon = "person_add",
                     IconColor = "blue"
@@ -150,7 +150,7 @@ public class DashboardController : ControllerBase
                 {
                     Type = "interview_confirmed",
                     Title = "Phỏng vấn đã xác nhận",
-                    Description = $"{i.Application.Candidate!.FullName} đã chấp nhận lời mời phỏng vấn.",
+                    Description = $"{i.Application.ContactName ?? i.Application.Candidate!.FullName} đã chấp nhận lời mời phỏng vấn.",
                     Timestamp = i.CreatedAt,
                     Icon = "check_circle",
                     IconColor = "green"
@@ -171,7 +171,7 @@ public class DashboardController : ControllerBase
                 {
                     Type = "offer_sent",
                     Title = "Đã gửi thư Mời nhận việc",
-                    Description = $"Đã gửi cho {a.Candidate!.FullName} cho vị trí {a.Job!.Title}.",
+                    Description = $"Đã gửi cho {a.ContactName ?? a.Candidate!.FullName} cho vị trí {a.Job!.Title}.",
                     Timestamp = a.LastStageChangedAt,
                     Icon = "assignment",
                     IconColor = "orange"
@@ -196,9 +196,10 @@ public class DashboardController : ControllerBase
     }
 
     /// <summary>
-    /// GET /api/dashboard/activities - Paged recent activity list
+    /// GET /api/dashboard/activities - Paged recent activity list (role-based filter)
     /// </summary>
     [HttpGet("activities")]
+    [Authorize]  // Require authentication
     [ResponseCache(Duration = 10, Location = ResponseCacheLocation.Any)] // Cache 10s
     public async Task<ActionResult<PagedActivityDto>> GetPagedActivities([FromQuery] int page = 1, [FromQuery] int pageSize = 15)
     {
@@ -207,67 +208,130 @@ public class DashboardController : ControllerBase
             if (page < 1) page = 1;
             if (pageSize < 1 || pageSize > 100) pageSize = 15;
 
+            // Get current user role
+            var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "CANDIDATE";
+            var userId = GetUserId();
+            
             var maxFetch = 500; // Giới hạn lấy 500 records mỗi loại cho nhẹ
             var activities = new List<DashboardActivityDto>();
 
-            var recentApplications = await _context.Applications
-                .AsNoTracking()
-                .Include(a => a.Candidate)
-                .Include(a => a.Job)
-                .OrderByDescending(a => a.AppliedAt)
-                .Take(maxFetch)
-                .Select(a => new DashboardActivityDto
+            // ROLE-BASED FILTERING
+            if (userRole == "HR" || userRole == "ADMIN")
+            {
+                // HR/Admin see ALL activities
+                var recentApplications = await _context.Applications
+                    .AsNoTracking()
+                    .Include(a => a.Candidate)
+                    .Include(a => a.Job)
+                    .OrderByDescending(a => a.AppliedAt)
+                    .Take(maxFetch)
+                    .Select(a => new DashboardActivityDto
+                    {
+                        Type = "new_application",
+                        Title = $"Ứng tuyển mới: {a.Job!.Title}",
+                        Description = $"{a.ContactName ?? a.Candidate!.FullName} đã nộp hồ sơ qua {a.Source ?? "Website"}.",
+                        Timestamp = a.AppliedAt,
+                        Icon = "person_add",
+                        IconColor = "blue"
+                    })
+                    .ToListAsync();
+
+                activities.AddRange(recentApplications);
+
+                var recentInterviews = await _context.Interviews
+                    .AsNoTracking()
+                    .Include(i => i.Application)
+                    .ThenInclude(a => a.Candidate)
+                    .Where(i => i.Status == "SCHEDULED")
+                    .OrderByDescending(i => i.CreatedAt)
+                    .Take(maxFetch)
+                    .Select(i => new DashboardActivityDto
+                    {
+                        Type = "interview_confirmed",
+                        Title = "Phỏng vấn đã xác nhận",
+                        Description = $"{i.Application.ContactName ?? i.Application.Candidate!.FullName} đã chấp nhận lời mời phỏng vấn.",
+                        Timestamp = i.CreatedAt,
+                        Icon = "check_circle",
+                        IconColor = "green"
+                    })
+                    .ToListAsync();
+
+                activities.AddRange(recentInterviews);
+
+                var recentOffers = await _context.Applications
+                    .AsNoTracking()
+                    .Include(a => a.Candidate)
+                    .Include(a => a.Job)
+                    .Where(a => a.Status == "Offer_Sent" || a.Status == "HIRED")
+                    .OrderByDescending(a => a.LastStageChangedAt)
+                    .Take(maxFetch)
+                    .Select(a => new DashboardActivityDto
+                    {
+                        Type = a.Status == "HIRED" ? "hired" : "offer_sent",
+                        Title = a.Status == "HIRED" ? "Đã tuyển dụng" : "Đã gửi thư Mời nhận việc",
+                        Description = a.Status == "HIRED" ? $"Chúc mừng! Đã tuyển {a.ContactName ?? a.Candidate!.FullName} cho vị trí {a.Job!.Title}." : $"Đã gửi cho {a.ContactName ?? a.Candidate!.FullName} cho vị trí {a.Job!.Title}.",
+                        Timestamp = a.LastStageChangedAt,
+                        Icon = a.Status == "HIRED" ? "workspace_premium" : "assignment",
+                        IconColor = a.Status == "HIRED" ? "purple" : "orange"
+                    })
+                    .ToListAsync();
+
+                activities.AddRange(recentOffers);
+            }
+            else if (userRole == "INTERVIEW")
+            {
+                // Interviewer sees ONLY interviews they are assigned to + related applications
+                var assignedInterviews = await _context.Interviews
+                    .AsNoTracking()
+                    .Include(i => i.Application)
+                    .ThenInclude(a => a.Candidate)
+                    .Where(i => i.InterviewerId == userId && i.Status == "SCHEDULED")
+                    .OrderByDescending(i => i.CreatedAt)
+                    .Take(maxFetch)
+                    .Select(i => new DashboardActivityDto
+                    {
+                        Type = "interview_confirmed",
+                        Title = "Phỏng vấn của tôi",
+                        Description = $"{i.Application.ContactName ?? i.Application.Candidate!.FullName} - Lịch phỏng vấn vào {i.ScheduledStart:dd/MM/yyyy HH:mm}",
+                        Timestamp = i.CreatedAt,
+                        Icon = "check_circle",
+                        IconColor = "green"
+                    })
+                    .ToListAsync();
+
+                activities.AddRange(assignedInterviews);
+            }
+            else if (userRole == "CANDIDATE")
+            {
+                // Candidate sees ONLY their own application activities
+                var candidateId = await _context.Candidates
+                    .AsNoTracking()
+                    .Where(c => c.UserId == userId)
+                    .Select(c => c.CandidateId)
+                    .FirstOrDefaultAsync();
+
+                if (candidateId != Guid.Empty)
                 {
-                    Type = "new_application",
-                    Title = $"Ứng tuyển mới: {a.Job!.Title}",
-                    Description = $"{a.Candidate!.FullName} đã nộp hồ sơ qua {a.Source ?? "Website"}.",
-                    Timestamp = a.AppliedAt,
-                    Icon = "person_add",
-                    IconColor = "blue"
-                })
-                .ToListAsync();
+                    var candidateApplications = await _context.Applications
+                        .AsNoTracking()
+                        .Include(a => a.Job)
+                        .Where(a => a.CandidateId == candidateId)
+                        .OrderByDescending(a => a.AppliedAt)
+                        .Take(maxFetch)
+                        .Select(a => new DashboardActivityDto
+                        {
+                            Type = "application_update",
+                            Title = $"Cập nhật: {a.Job!.Title}",
+                            Description = $"Trạng thái hồ sơ: {GetStatusLabel(a.Status)}",
+                            Timestamp = a.AppliedAt,
+                            Icon = "assignment",
+                            IconColor = "blue"
+                        })
+                        .ToListAsync();
 
-            activities.AddRange(recentApplications);
-
-            var recentInterviews = await _context.Interviews
-                .AsNoTracking()
-                .Include(i => i.Application)
-                .ThenInclude(a => a.Candidate)
-                .Where(i => i.Status == "SCHEDULED")
-                .OrderByDescending(i => i.CreatedAt)
-                .Take(maxFetch)
-                .Select(i => new DashboardActivityDto
-                {
-                    Type = "interview_confirmed",
-                    Title = "Phỏng vấn đã xác nhận",
-                    Description = $"{i.Application.Candidate!.FullName} đã chấp nhận lời mời phỏng vấn.",
-                    Timestamp = i.CreatedAt,
-                    Icon = "check_circle",
-                    IconColor = "green"
-                })
-                .ToListAsync();
-
-            activities.AddRange(recentInterviews);
-
-            var recentOffers = await _context.Applications
-                .AsNoTracking()
-                .Include(a => a.Candidate)
-                .Include(a => a.Job)
-                .Where(a => a.Status == "Offer_Sent" || a.Status == "HIRED")
-                .OrderByDescending(a => a.LastStageChangedAt)
-                .Take(maxFetch)
-                .Select(a => new DashboardActivityDto
-                {
-                    Type = a.Status == "HIRED" ? "hired" : "offer_sent",
-                    Title = a.Status == "HIRED" ? "Đã tuyển dụng" : "Đã gửi thư Mời nhận việc",
-                    Description = a.Status == "HIRED" ? $"Chúc mừng! Đã tuyển {a.Candidate!.FullName} cho vị trí {a.Job!.Title}." : $"Đã gửi cho {a.Candidate!.FullName} cho vị trí {a.Job!.Title}.",
-                    Timestamp = a.LastStageChangedAt,
-                    Icon = a.Status == "HIRED" ? "workspace_premium" : "assignment",
-                    IconColor = a.Status == "HIRED" ? "purple" : "orange"
-                })
-                .ToListAsync();
-
-            activities.AddRange(recentOffers);
+                    activities.AddRange(candidateApplications);
+                }
+            }
 
             // In-memory sort and pagination
             var sortedActivities = activities.OrderByDescending(x => x.Timestamp).ToList();
@@ -312,7 +376,7 @@ public class DashboardController : ControllerBase
                 {
                     ApplicationId = a.ApplicationId,
                     JobId = a.JobId,
-                    CandidateName = a.Candidate!.FullName,
+                    CandidateName = a.ContactName ?? a.Candidate!.FullName,
                     JobTitle = a.Job!.Title,
                     Status = a.Status,
                     StatusLabel = GetStatusLabel(a.Status),
@@ -378,11 +442,22 @@ public class DashboardController : ControllerBase
         }
     }
 
-    // Helper methods
-    private static double CalculateGrowth(int current, int previous)
+    private double CalculateGrowth(int current, int previous)
     {
         if (previous == 0) return current > 0 ? 100 : 0;
         return Math.Round(((double)(current - previous) / previous) * 100, 1);
+    }
+
+    private Guid GetUserId()
+    {
+        var userIdClaim = User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)
+            ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+
+        if (userIdClaim != null && Guid.TryParse(userIdClaim.Value, out var userId))
+        {
+            return userId;
+        }
+        return Guid.Empty;
     }
 
     private static string GetStatusLabel(string status)

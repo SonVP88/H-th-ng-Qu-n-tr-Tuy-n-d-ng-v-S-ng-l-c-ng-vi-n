@@ -91,10 +91,11 @@ export class OfferModalComponent {
         this.offerService.sendOfferLetter(payload).subscribe({
             next: (response) => {
                 this.isSending = false;
-                console.log(' Offer sent successfully:', response);
+                console.log(' Offer request accepted:', response);
 
-                // Hiển thị thông báo thành công
-                this.toast.success('Gửi Offer thành công', `Đã gửi email tới ${payload.candidateName}`);
+                // Hiển thị thông báo đã tiếp nhận gửi nền để UI không bị block.
+                const successMessage = response?.message || `Hệ thống đang gửi Offer tới ${payload.candidateName}.`;
+                this.toast.success('Đã tiếp nhận gửi Offer', successMessage);
 
                 // Emit event để thông báo cho component cha
                 this.offerSent.emit(payload);

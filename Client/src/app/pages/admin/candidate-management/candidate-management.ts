@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AccountService, CandidateDto } from '../../../services/account.service';
 import { ToastService } from '../../../services/toast.service';
+import { PopupService } from '../../../services/popup.service';
 
 @Component({
   selector: 'app-admin-candidate-management',
@@ -29,6 +30,7 @@ export class CandidateManagementComponent implements OnInit {
   constructor(
     private accountService: AccountService,
     private toastService: ToastService,
+    private popup: PopupService,
     private ngZone: NgZone,
     private cdr: ChangeDetectorRef
   ) {}
@@ -81,18 +83,33 @@ export class CandidateManagementComponent implements OnInit {
   }
 
   // Chìa khoá quan trọng sử dụng NgZone để thay đổi trạng thái UI tức thời
-  toggleLock(candidate: CandidateDto) {
+  async toggleLock(candidate: CandidateDto) {
     // Hỏi xác nhận
     const actionName = candidate.isActive ? 'Khóa' : 'Mở Khóa';
     let reason = '';
     
     if (candidate.isActive) {
-      const p = prompt(`Nhập lý do Khóa tài khoản của ${candidate.fullName}:`);
-      if (p === null) return; // Nhấn Cancel
+      const p = await this.popup.prompt({
+        title: 'Lý do khóa tài khoản',
+        message: `Nhập lý do khóa tài khoản của ${candidate.fullName}`,
+        placeholder: 'Ví dụ: Vi phạm quy định hồ sơ',
+        confirmText: 'Tiếp tục',
+        cancelText: 'Hủy',
+        tone: 'neutral',
+        multiline: true,
+      });
+      if (p === null) return;
       reason = p.trim();
     }
 
-    if (!confirm(`Bạn có chắc muốn ${actionName} ứng viên này?`)) return;
+    const ok = await this.popup.confirm({
+      title: `${actionName} ứng viên`,
+      message: `Bạn có chắc muốn ${actionName.toLowerCase()} ứng viên này?`,
+      confirmText: actionName,
+      cancelText: 'Không',
+      tone: candidate.isActive ? 'danger' : 'primary',
+    });
+    if (!ok) return;
 
     this.isToggling[candidate.userId] = true;
 

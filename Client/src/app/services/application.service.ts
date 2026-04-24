@@ -22,6 +22,9 @@ export interface ApplicationDto {
     slaOverdueDays?: number;
     slaMaxDays?: number;
     slaWarnBeforeDays?: number;
+    jobStatus?: string;
+    jobNumberOfPositions?: number;
+    jobTotalHired?: number;
 }
 
 export interface SlaStageConfigDto {

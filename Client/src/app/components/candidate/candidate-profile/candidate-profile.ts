@@ -9,6 +9,7 @@ import { CandidateFooter } from '../../shared/candidate-footer/candidate-footer'
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { ToastService } from '../../../services/toast.service';
 import { AuthService } from '../../../services/auth.service';
+import { PopupService } from '../../../services/popup.service';
 
 @Component({
     selector: 'app-candidate-profile',
@@ -88,7 +89,8 @@ export class CandidateProfile implements OnInit {
         private cdr: ChangeDetectorRef,
         private route: ActivatedRoute,
         private ngZone: NgZone,
-        private toast: ToastService
+        private toast: ToastService,
+        private popup: PopupService
     ) {
         this.initForm();
     }
@@ -281,13 +283,20 @@ export class CandidateProfile implements OnInit {
         });
     }
 
-    deleteCV(cvId: string): void {
-        if (confirm('Bạn có chắc chắn muốn xóa CV này?')) {
-            this.candidateService.deleteCV(cvId).subscribe({
-                next: () => this.handleRefresh('Đã xóa CV thành công!'),
-                error: (err) => console.error('Failed to delete CV', err)
-            });
-        }
+    async deleteCV(cvId: string): Promise<void> {
+        const confirmed = await this.popup.confirm({
+            title: 'Xóa CV',
+            message: 'Bạn có chắc chắn muốn xóa CV này?',
+            confirmText: 'Xóa',
+            cancelText: 'Hủy',
+            tone: 'danger',
+        });
+        if (!confirmed) return;
+
+        this.candidateService.deleteCV(cvId).subscribe({
+            next: () => this.handleRefresh('Đã xóa CV thành công!'),
+            error: (err) => console.error('Failed to delete CV', err)
+        });
     }
 
     addSkill(): void {

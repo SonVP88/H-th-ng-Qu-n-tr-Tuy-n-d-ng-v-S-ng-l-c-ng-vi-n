@@ -6,6 +6,7 @@ import { jwtDecode } from 'jwt-decode';
 import { isPlatformBrowser } from '@angular/common';
 import { environment } from '../../environments/environment';
 import { ChatbotService } from './chatbot.service';
+import { PopupService } from './popup.service';
 
 @Injectable({
     providedIn: 'root'
@@ -14,6 +15,7 @@ export class AuthService {
     private platformId = inject(PLATFORM_ID);
     private chatbotService = inject(ChatbotService);
     private ngZone = inject(NgZone);
+    private popup = inject(PopupService);
 
     private idleTimer: any;
     private readonly IDLE_TIMEOUT = 5 * 60 * 1000; // 5 phút
@@ -116,7 +118,12 @@ export class AuthService {
 
         this.router.navigate(['/login']).then(() => {
             if (isTimeout) {
-                alert('Phiên đăng nhập đã tự động kết thúc do không hoạt động trong 5 phút. Vui lòng đăng nhập lại.');
+                void this.popup.alert({
+                    title: 'Phiên hết hạn',
+                    message: 'Phiên đăng nhập đã tự động kết thúc do không hoạt động trong 5 phút. Vui lòng đăng nhập lại.',
+                    confirmText: 'Đăng nhập',
+                    tone: 'neutral',
+                });
             }
         });
     }

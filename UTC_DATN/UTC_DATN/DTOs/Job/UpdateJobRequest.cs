@@ -23,6 +23,10 @@ public class UpdateJobRequest
 
     public string? EmploymentType { get; set; }
 
+    public string? ExperienceLevel { get; set; }
+
+    public string? SeniorityLevel { get; set; }
+
     public DateTime? Deadline { get; set; }
 
     public List<Guid>? SkillIds { get; set; }

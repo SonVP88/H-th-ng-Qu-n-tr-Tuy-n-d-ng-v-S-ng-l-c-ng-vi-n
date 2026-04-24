@@ -45,7 +45,7 @@ namespace UTC_DATN.Services.Background
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError($"❌ Lỗi trong SLA Alert Background Service: {ex.Message}");
+                    _logger.LogError($" Lỗi trong SLA Alert Background Service: {ex.Message}");
                 }
 
                 // Chờ interval trước khi chạy lần tiếp theo

@@ -6,7 +6,6 @@ import { JobDetail } from './pages/candidate/job-detail/job-detail';
 import { MyApplications } from './pages/candidate/my-applications/my-applications';
 import { Dashboard } from './pages/hr/dashboard/dashboard';
 import { HrLayout } from './layouts/hr-layout/hr-layout';
-import { PostJob } from './pages/hr/post-job/post-job';
 import { ManageApplications } from './pages/hr/manage-applications/manage-applications';
 import { EmployeeManagement } from './pages/admin/employee-management/employee-management';
 import { ForbiddenComponent } from './pages/forbidden/forbidden.component';
@@ -75,12 +74,18 @@ export const routes: Routes = [
         path: 'jobs',
         loadComponent: () => import('./pages/hr/job-list/job-list').then(m => m.JobListComponent)
       },
-      { path: 'post-job', component: PostJob },
+      {
+        path: 'post-job',
+        loadComponent: () => import('./pages/hr/post-job').then(m => m.PostJob)
+      },
       {
         path: 'settings',
         loadComponent: () => import('./pages/hr/settings/settings').then(m => m.SettingsComponent)
       },
-      { path: 'post-job/:id', component: PostJob },
+      {
+        path: 'post-job/:id',
+        loadComponent: () => import('./pages/hr/post-job').then(m => m.PostJob)
+      },
       { path: 'manage-applications/:jobId', component: ManageApplications },
       { path: 'manage-applications', component: ManageApplications },
       { path: 'candidate-detail', component: CandidateDetail },
@@ -99,19 +104,19 @@ export const routes: Routes = [
         path: 'employees',
         component: EmployeeManagement,
         canActivate: [roleGuard],
-        data: { roles: ['ADMIN'] }
+        data: { roles: ['ADMIN', 'HR'] }
       },
       {
         path: 'skills',
         loadComponent: () => import('./pages/admin/skill-management/skill-management').then(m => m.SkillManagementComponent),
         canActivate: [roleGuard],
-        data: { roles: ['ADMIN'] }
+        data: { roles: ['ADMIN', 'HR', 'INTERVIEW'] }
       },
       {
         path: 'candidates',
         loadComponent: () => import('./pages/admin/candidate-management/candidate-management').then(m => m.CandidateManagementComponent),
         canActivate: [roleGuard],
-        data: { roles: ['ADMIN'] }
+        data: { roles: ['ADMIN', 'HR'] }
       },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
     ]
@@ -120,3 +125,4 @@ export const routes: Routes = [
   { path: '', redirectTo: 'candidate/home', pathMatch: 'full' },
   { path: '**', redirectTo: 'candidate/home' }
 ];
+  

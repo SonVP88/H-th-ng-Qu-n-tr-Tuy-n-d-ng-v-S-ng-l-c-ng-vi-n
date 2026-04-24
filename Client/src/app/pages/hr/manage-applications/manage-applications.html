@@ -20,14 +20,6 @@
                 class="whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm hover:text-gray-700 hover:border-gray-300 transition-colors">
                 Ứng viên đã nộp ({{applications.length}})
             </button>
-            <button (click)="switchTab('RECOMMENDATIONS')" [class.border-purple-500]="activeTab === 'RECOMMENDATIONS'"
-                [class.text-purple-600]="activeTab === 'RECOMMENDATIONS'"
-                [class.border-transparent]="activeTab !== 'RECOMMENDATIONS'"
-                [class.text-gray-500]="activeTab !== 'RECOMMENDATIONS'"
-                class="whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm hover:text-gray-700 hover:border-gray-300 transition-colors flex items-center gap-2 relative">
-                <span class="material-symbols-outlined text-base">auto_awesome</span>
-                AI Gợi ý Ứng viên (Sourcing)
-            </button>
         </nav>
     </div>
 
@@ -330,17 +322,43 @@
                                         </button>
                                     </ng-container>
 
-                                    <!-- Trường hợp 3.5: WAITLIST (Đã đủ chỉ tiêu - chờ HR duyệt xử lý tiếp) -->
+                                    <!-- Trường hợp 3.5: WAITLIST -->
                                     <ng-container *ngIf="app.status === 'Waitlist'">
                                         <div class="flex flex-col gap-2">
                                             <span
-                                                class="px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-lg text-xs font-medium flex items-center justify-center gap-1 border border-indigo-200">
+                                                [ngClass]="getWaitlistAccentClass(app)"
+                                                class="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1 border">
                                                 <span class="material-symbols-outlined" style="font-size: 14px;">hourglass_top</span>
-                                                Đang ở danh sách chờ (Waitlist)
+                                                {{ getWaitlistText(app) }}
                                             </span>
                                             <span class="text-[11px] text-gray-500 italic text-center">
-                                                Job đã đủ chỉ tiêu. HR có thể duyệt thủ công để từ chối chính thức sau.
+                                                {{ getWaitlistSourceLabel(app) }} · {{ getWaitlistSourceHint(app) }}
                                             </span>
+                                            <span class="text-[11px] text-gray-500 italic text-center">
+                                                {{ isWaitlistBecauseJobFull(app) ? 'Job đã đủ chỉ tiêu. HR xử lý thủ công để chốt hồ sơ này.' : 'Ứng viên chưa bị loại, HR có thể tiếp tục theo dõi hoặc từ chối chính thức.' }}
+                                            </span>
+                                            <div class="grid grid-cols-1 gap-2">
+                                                <button
+                                                    (click)="updateStatus(app.applicationId, 'Pending_Offer'); $event.stopPropagation()"
+                                                    [disabled]="isWaitlistBecauseJobFull(app)"
+                                                    [title]="isWaitlistBecauseJobFull(app) ? 'Job đã đủ chỉ tiêu, cần tăng số lượng tuyển trước khi gửi Offer thêm.' : ''"
+                                                    class="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-xs font-semibold flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed">
+                                                    <span class="material-symbols-outlined" style="font-size: 14px;">mail</span>
+                                                    Chuyển sang chờ Offer
+                                                </button>
+                                                <button
+                                                    (click)="updateStatus(app.applicationId, 'INTERVIEW'); $event.stopPropagation()"
+                                                    class="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-semibold flex items-center justify-center gap-1">
+                                                    <span class="material-symbols-outlined" style="font-size: 14px;">event</span>
+                                                    Mời phỏng vấn lại
+                                                </button>
+                                            </div>
+                                            <button
+                                                (click)="updateStatus(app.applicationId, 'REJECTED'); $event.stopPropagation()"
+                                                class="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-xs font-semibold flex items-center justify-center gap-1">
+                                                <span class="material-symbols-outlined" style="font-size: 14px;">close</span>
+                                                Loại hồ sơ
+                                            </button>
                                         </div>
                                     </ng-container>
 
@@ -449,7 +467,7 @@
     </ng-container>
 
     <!-- TAB AI RECOMMENDATIONS -->
-    <ng-container *ngIf="activeTab === 'RECOMMENDATIONS'">
+    <ng-container *ngIf="false && activeTab === 'RECOMMENDATIONS'">
         <div class="mb-4 bg-purple-50 rounded-xl p-4 border border-purple-100">
             <h3 class="text-purple-800 font-semibold mb-1 flex items-center gap-2">
                 <span class="material-symbols-outlined text-purple-600">tips_and_updates</span>
@@ -518,12 +536,14 @@
                     </div>
 
                     <div class="border-t border-gray-100 pt-4 flex gap-2">
-                        <button
-                            class="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-semibold flex items-center justify-center gap-2">
-                            <span class="material-symbols-outlined text-sm">mail</span>
-                            Gửi thư mời
+                        <button (click)="inviteRecommendedCandidate(candidate)"
+                            [disabled]="isInviteSending(candidate) || hasAppliedToCurrentJob(candidate)"
+                            class="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-60 disabled:cursor-not-allowed transition-colors text-sm font-semibold flex items-center justify-center gap-2">
+                            <span class="material-symbols-outlined text-sm" *ngIf="!isInviteSending(candidate)">mail</span>
+                            <span class="material-symbols-outlined text-sm animate-spin" *ngIf="isInviteSending(candidate)">progress_activity</span>
+                            {{ hasAppliedToCurrentJob(candidate) ? 'Đã ứng tuyển' : (invitedCandidateIds.has(candidate.candidateId) ? 'Đã mời' : (isInviteSending(candidate) ? 'Đang gửi...' : 'Gửi thư mời')) }}
                         </button>
-                        <button
+                        <button (click)="viewRecommendedCandidateProfile(candidate)"
                             class="px-4 py-2 bg-gray-50 text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors text-sm font-semibold">
                             Xem hồ sơ
                         </button>

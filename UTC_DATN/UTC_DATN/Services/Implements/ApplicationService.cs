@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
 using UTC_DATN.Data;
 using UTC_DATN.DTOs.Application;
 using UTC_DATN.Entities;
@@ -37,8 +38,53 @@ public class ApplicationService : IApplicationService
         ["Pending_Offer"] = "OFFER",
         ["Offer_Sent"] = "OFFER",
         ["OFFER_ACCEPTED"] = "OFFER",
+        ["Waitlist"] = "WAITLIST",
         ["REJECTED"] = "REJECTED"
     };
+
+    private static string ResolveCandidateDisplayName(Entities.Application application)
+    {
+        if (!string.IsNullOrWhiteSpace(application.ContactName))
+        {
+            return application.ContactName.Trim();
+        }
+
+        if (!string.IsNullOrWhiteSpace(application.Candidate?.FullName))
+        {
+            return application.Candidate.FullName.Trim();
+        }
+
+        return "Ứng viên";
+    }
+
+    /// <summary>
+    /// ✅ NEW: Gửi email async (background task) - không block response
+    /// Giống cách làm ở InterviewService - Fire and forget
+    /// </summary>
+    private void QueueRejectionEmailInBackground(string toEmail, string subject, string candidateName, string jobTitle, string status, string companyName)
+    {
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                using var scope = _serviceProvider.CreateScope();
+                var scopedAiService = scope.ServiceProvider.GetRequiredService<IAiMatchingService>();
+                var scopedEmailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
+
+                // Tạo nội dung email bằng AI
+                var emailBody = await scopedAiService.GenerateEmailContentAsync(candidateName, jobTitle, status, companyName);
+                
+                // Gửi email
+                await scopedEmailService.SendEmailAsync(toEmail, subject, emailBody);
+                
+                _logger.LogInformation("✅ Đã gửi email background thành công đến: {Email}", toEmail);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "⚠️ Lỗi khi gửi email background đến: {Email}", toEmail);
+            }
+        });
+    }
 
     public ApplicationService(
         UTC_DATNContext context,
@@ -131,6 +177,7 @@ public class ApplicationService : IApplicationService
     public async Task<bool> ApplyJobAsync(ApplyJobRequest request, Guid? userId)
     {
         string? savedFilePath = null;
+        string? fileSha256 = null;
 
         try
         {
@@ -180,34 +227,19 @@ public class ApplicationService : IApplicationService
             }
             _logger.LogInformation("Đã lưu file CV: {FilePath}", savedFilePath);
 
+            using (var sha256 = SHA256.Create())
+            await using (var cvStream = System.IO.File.OpenRead(savedFilePath))
+            {
+                var hashBytes = await sha256.ComputeHashAsync(cvStream);
+                fileSha256 = Convert.ToHexString(hashBytes).ToLowerInvariant();
+            }
+
             // === BẮT ĐẦU TRANSACTION ===
             await using var transaction = await _context.Database.BeginTransactionAsync();
 
             try
             {
-                // === BƯỚC 2: LƯU BẢN GHI FILES ===
-                var mimeType = fileExtension == ".pdf" 
-                    ? "application/pdf" 
-                    : "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-
-                var fileEntity = new Entities.File
-                {
-                    FileId = Guid.NewGuid(),
-                    Provider = "LOCAL",
-                    OriginalFileName = request.CVFile.FileName,
-                    StoredFileName = newFileName,
-                    MimeType = mimeType,
-                    SizeBytes = request.CVFile.Length,
-                    LocalPath = $"/uploads/cvs/{newFileName}",
-                    Url = $"/uploads/cvs/{newFileName}",
-                    CreatedAt = DateTime.UtcNow
-                };
-
-                _context.Files.Add(fileEntity);
-                await _context.SaveChangesAsync();
-                _logger.LogInformation("Đã tạo bản ghi File: {FileId}", fileEntity.FileId);
-
-                // === BƯỚC 3: TÌM/TẠO CANDIDATE (LOGIC MỚI BẢO VỆ DANH TÍNH) ===
+                // === BƯỚC 2: TÌM/TẠO CANDIDATE (LOGIC MỚI BẢO VỆ DANH TÍNH) ===
                 Candidate? candidate = null;
 
                 // Priority 1: Dành cho User ĐÃ ĐĂNG NHẬP
@@ -299,21 +331,7 @@ public class ApplicationService : IApplicationService
 
                 await _context.SaveChangesAsync();
 
-                // === BƯỚC 4: TẠO CANDIDATEDOCUMENT ===
-                var candidateDocument = new CandidateDocument
-                {
-                    CandidateDocumentId = Guid.NewGuid(),
-                    CandidateId = candidate.CandidateId,
-                    FileId = fileEntity.FileId,
-                    DocType = "CV",
-                    CreatedAt = DateTime.UtcNow
-                };
-
-                _context.CandidateDocuments.Add(candidateDocument);
-                await _context.SaveChangesAsync();
-                _logger.LogInformation("Đã tạo CandidateDocument: {DocumentId}", candidateDocument.CandidateDocumentId);
-
-                // === BƯỚC 5: TẠO APPLICATION ===
+                // === BƯỚC 3: TẠO APPLICATION ===
                 
                 // Kiểm tra Job tồn tại
                 var job = await _context.Jobs
@@ -331,6 +349,73 @@ public class ApplicationService : IApplicationService
                 if (existingApplication != null)
                 {
                     throw new InvalidOperationException("Bạn đã nộp hồ sơ cho công việc này rồi");
+                }
+
+                // === BƯỚC 4: REUSE CANDIDATEDOCUMENT nếu CV trùng hash ===
+                var existingSameCvDocument = await _context.CandidateDocuments
+                    .Include(cd => cd.File)
+                    .Where(cd => cd.CandidateId == candidate.CandidateId
+                        && cd.DocType == "CV"
+                        && cd.File != null
+                        && cd.File.Sha256 == fileSha256)
+                    .OrderByDescending(cd => cd.IsPrimary)
+                    .ThenByDescending(cd => cd.CreatedAt)
+                    .FirstOrDefaultAsync();
+
+                CandidateDocument candidateDocument;
+
+                if (existingSameCvDocument != null)
+                {
+                    candidateDocument = existingSameCvDocument;
+                    _logger.LogInformation("♻️ Reuse CandidateDocument {DocumentId} vì CV trùng SHA256", candidateDocument.CandidateDocumentId);
+
+                    // Không cần file vật lý vừa upload nếu trùng hoàn toàn.
+                    if (!string.IsNullOrWhiteSpace(savedFilePath) && System.IO.File.Exists(savedFilePath))
+                    {
+                        System.IO.File.Delete(savedFilePath);
+                        savedFilePath = null;
+                    }
+                }
+                else
+                {
+                    var mimeType = fileExtension == ".pdf"
+                        ? "application/pdf"
+                        : "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+
+                    var fileEntity = new Entities.File
+                    {
+                        FileId = Guid.NewGuid(),
+                        Provider = "LOCAL",
+                        OriginalFileName = request.CVFile.FileName,
+                        StoredFileName = newFileName,
+                        MimeType = mimeType,
+                        SizeBytes = request.CVFile.Length,
+                        Sha256 = fileSha256,
+                        LocalPath = $"/uploads/cvs/{newFileName}",
+                        Url = $"/uploads/cvs/{newFileName}",
+                        CreatedAt = DateTime.UtcNow
+                    };
+
+                    _context.Files.Add(fileEntity);
+                    await _context.SaveChangesAsync();
+
+                    var hasCv = await _context.CandidateDocuments
+                        .AnyAsync(cd => cd.CandidateId == candidate.CandidateId && cd.DocType == "CV");
+
+                    candidateDocument = new CandidateDocument
+                    {
+                        CandidateDocumentId = Guid.NewGuid(),
+                        CandidateId = candidate.CandidateId,
+                        FileId = fileEntity.FileId,
+                        DocType = "CV",
+                        CreatedAt = DateTime.UtcNow,
+                        IsPrimary = !hasCv,
+                        DisplayName = request.CVFile.FileName
+                    };
+
+                    _context.CandidateDocuments.Add(candidateDocument);
+                    await _context.SaveChangesAsync();
+                    _logger.LogInformation("Đã tạo CandidateDocument mới: {DocumentId}", candidateDocument.CandidateDocumentId);
                 }
 
                 // Lấy PipelineStage đầu tiên (stage có SortOrder thấp nhất)
@@ -409,10 +494,12 @@ public class ApplicationService : IApplicationService
 
                     foreach (var adminId in adminAndHrUsers)
                     {
+                        var displayName = ResolveCandidateDisplayName(application);
+
                         await _notificationService.CreateNotificationAsync(
                             adminId,
                             "Có hồ sơ ứng tuyển mới",
-                            $"Ứng viên {application.ContactName ?? candidate.FullName ?? "Ứng viên"} vừa nộp hồ sơ vào vị trí {job.Title}.",
+                            $"Ứng viên {displayName} vừa nộp hồ sơ vào vị trí {job.Title}.",
                             "NEW_APPLICATION",
                             application.ApplicationId.ToString()
                         );
@@ -484,6 +571,9 @@ public class ApplicationService : IApplicationService
                     : (a.Candidate.CandidateDocuments.Where(d => d.DocType == "CV").OrderByDescending(d => d.IsPrimary).Select(d => d.File.Url).FirstOrDefault() ?? ""),
                 JobTitle = a.Job.Title,
                 JobId = a.JobId,
+                JobStatus = a.Job.Status,
+                JobNumberOfPositions = a.Job.NumberOfPositions,
+                JobTotalHired = a.Job.Applications.Count(app => app.Status == "HIRED"),
                 CurrentStageCode = a.CurrentStage.Code,
                 CurrentStageName = a.CurrentStage.Name,
                 CurrentStage = a.CurrentStage,
@@ -528,6 +618,9 @@ public class ApplicationService : IApplicationService
                 CvUrl = a.CvUrl,
                 JobTitle = a.JobTitle,
                 JobId = a.JobId,
+                JobStatus = a.JobStatus,
+                JobNumberOfPositions = a.JobNumberOfPositions,
+                JobTotalHired = a.JobTotalHired,
                 MatchScore = (int?)a.LatestScore?.MatchingScore,
                 AiExplanation = explanation,
                 CurrentStageCode = a.CurrentStageCode,
@@ -593,9 +686,9 @@ public class ApplicationService : IApplicationService
             {
                 _logger.LogInformation("📧 Bắt đầu gửi email thông báo cho ứng viên. Status: {Status}", newStatus);
                 
-                var candidateName = application.ContactName ?? application.Candidate?.FullName ?? "Ứng viên";
+                var candidateName = ResolveCandidateDisplayName(application);
                 var jobTitle = application.Job?.Title ?? "Vị trí ứng tuyển";
-                var companyName = application.Job?.CreatedByNavigation?.FullName ?? "Công ty";
+                var companyName = "V9 Tech"; // ✅ FIX: Thay thế company name
 
                 var emailToSend = !string.IsNullOrEmpty(application.ContactEmail) 
                     ? application.ContactEmail 
@@ -611,23 +704,13 @@ public class ApplicationService : IApplicationService
                         emailToSend, 
                         !string.IsNullOrEmpty(application.ContactEmail) ? "ContactEmail (Snapshot)" : "Candidate.Email (Fallback)");
 
-                    // Bước 1: Tạo nội dung email bằng AI
-                    var emailBody = await _aiMatchingService.GenerateEmailContentAsync(
-                        candidateName, 
-                        jobTitle, 
-                        newStatus, 
-                        companyName
-                    );
-
-                    // Bước 2: Tạo tiêu đề email
+                    // ✅ FIX: Gửi email async (background task) thay vì sync để UI không bị đứng
                     var emailSubject = newStatus == "HIRED"
                         ? $"Chúc mừng! Bạn đã trúng tuyển vị trí {jobTitle}"
                         : $"Thông báo kết quả ứng tuyển vị trí {jobTitle}";
 
-                    // Bước 3: Gửi email
-                    await _emailService.SendEmailAsync(emailToSend, emailSubject, emailBody);
-                    
-                    _logger.LogInformation(" Đã gửi email thông báo thành công đến: {Email}", emailToSend);
+                    QueueRejectionEmailInBackground(emailToSend, emailSubject, candidateName, jobTitle, newStatus, companyName);
+                    _logger.LogInformation("⚡ Đã gửi yêu cầu email vào background queue cho: {Email}", emailToSend);
                 }
             }
             catch (Exception emailEx)
@@ -637,7 +720,10 @@ public class ApplicationService : IApplicationService
         }
 
         // 8. TẠO THÔNG BÁO CHO ỨNG VIÊN (NEW)
-        if (saveResult && application.Candidate != null && application.Candidate.UserId.HasValue)
+        // Bỏ qua thông báo nếu candidate tự phản hồi offer (accept/reject) vì lúc đó block 9 sẽ thông báo cho HR thay vào đó
+        bool isCandidateOfferResponse = !isHrAction && (newStatus == "OFFER_ACCEPTED" || newStatus == "REJECTED");
+        
+        if (saveResult && !isCandidateOfferResponse && application.Candidate != null && application.Candidate.UserId.HasValue)
         {
             try
             {
@@ -653,22 +739,15 @@ public class ApplicationService : IApplicationService
                         notifType = "OFFER";
                         break;
                     case "OFFER_ACCEPTED":
+                        // Block này không sẽ chạy nếu candidate tự accept, nên có thể để lại cho HR accept
                         notifTitle = "Đã ghi nhận đồng ý Offer";
                         notifMessage = $"Bạn đã đồng ý Offer cho vị trí {application.Job?.Title}. Bộ phận HR sẽ xác nhận bước nhận việc tiếp theo.";
                         notifType = "OFFER";
                         break;
                     case "REJECTED":
-                        // Phân biệt HR từ chối vs Candidate từ chối offer
-                        if (isHrAction)
-                        {
-                            notifTitle = "Thông báo kết quả ứng tuyển";
-                            notifMessage = $"Cảm ơn bạn đã quan tâm đến vị trí {application.Job?.Title}. Rất tiếc hiện tại hồ sơ của bạn chưa phù hợp.";
-                        }
-                        else
-                        {
-                            notifTitle = "Bạn đã từ chối Offer";
-                            notifMessage = $"Chúng tôi đã ghi nhận việc bạn từ chối Offer cho vị trí \"{application.Job?.Title}\". Cảm ơn bạn đã dành thời gian, chúc bạn sớm tìm được công việc phù hợp!";
-                        }
+                        // Only create notification for candidate if HR rejected (not when candidate self-rejected)
+                        notifTitle = "Thông báo kết quả ứng tuyển";
+                        notifMessage = $"Cảm ơn bạn đã quan tâm đến vị trí {application.Job?.Title}. Rất tiếc hiện tại hồ sơ của bạn chưa phù hợp.";
                         break;
                     case "Pending_Offer":
                         notifTitle = "Cập nhật trạng thái ứng tuyển";
@@ -722,7 +801,7 @@ public class ApplicationService : IApplicationService
 
                 if (hrUser != null)
                 {
-                    var candidateName = application.ContactName ?? application.Candidate?.FullName ?? "Ứng viên";
+                    var candidateName = ResolveCandidateDisplayName(application);
                     var jobTitle = application.Job?.Title ?? "vị trí ứng tuyển";
                     string hrNotifTitle, hrNotifMessage;
 
@@ -968,6 +1047,9 @@ public class ApplicationService : IApplicationService
                     : (a.Candidate.CandidateDocuments.Where(d => d.DocType == "CV").OrderByDescending(d => d.IsPrimary).Select(d => d.File.Url).FirstOrDefault() ?? ""),
                 JobTitle = a.Job.Title,
                 JobId = a.JobId,
+                JobStatus = a.Job.Status,
+                JobNumberOfPositions = a.Job.NumberOfPositions,
+                JobTotalHired = a.Job.Applications.Count(app => app.Status == "HIRED"),
                 CurrentStageCode = a.CurrentStage.Code,
                 CurrentStageName = a.CurrentStage.Name,
                 CurrentStage = a.CurrentStage,
@@ -1011,6 +1093,9 @@ public class ApplicationService : IApplicationService
                 CvUrl = a.CvUrl,
                 JobTitle = a.JobTitle,
                 JobId = a.JobId,
+                JobStatus = a.JobStatus,
+                JobNumberOfPositions = a.JobNumberOfPositions,
+                JobTotalHired = a.JobTotalHired,
                 MatchScore = (int?)a.LatestScore?.MatchingScore,
                 AiExplanation = explanation,
                 CurrentStageCode = a.CurrentStageCode,
@@ -1301,11 +1386,18 @@ public class ApplicationService : IApplicationService
                 var scopedLogger = scope.ServiceProvider.GetRequiredService<ILogger<ApplicationService>>();
                 var scopedAiService = scope.ServiceProvider.GetRequiredService<IAiMatchingService>();
 
-                // Kiểm tra file extension - Chỉ hỗ trợ PDF
-                var cvExt = Path.GetExtension(savedFilePath).ToLowerInvariant();
-                if (cvExt != ".pdf")
+                // ✅ Kiểm tra savedFilePath trước
+                if (string.IsNullOrEmpty(savedFilePath))
                 {
-                    scopedLogger.LogWarning("🔄 [BACKGROUND] File không phải PDF ({Extension}), bỏ qua AI scoring. Chỉ hỗ trợ file PDF.", cvExt);
+                    scopedLogger.LogWarning(" Đường dẫn file rỗng, bỏ qua AI scoring");
+                    return;
+                }
+
+                // Kiểm tra file extension - Chỉ hỗ trợ PDF
+                var cvExt = Path.GetExtension(savedFilePath)?.ToLowerInvariant() ?? "";
+                if (string.IsNullOrEmpty(cvExt) || cvExt != ".pdf")
+                {
+                    scopedLogger.LogWarning("File không phải PDF ({Extension}), bỏ qua AI scoring. Chỉ hỗ trợ file PDF.", cvExt ?? "no extension");
                     return;
                 }
 

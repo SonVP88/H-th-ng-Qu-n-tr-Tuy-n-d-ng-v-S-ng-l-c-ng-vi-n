@@ -364,7 +364,7 @@ export class Dashboard implements OnInit, OnDestroy {
         }
       },
       error: (error) => {
-        console.error('❌ Lỗi tải SLA alerts:', error);
+        console.error(' Lỗi tải SLA alerts:', error);
         this.isLoadingSlaAlerts = false;
         if (!this.isDestroyed) {
           this.cdr.detectChanges();

@@ -22,6 +22,10 @@ public class JobHomeDto
     public string? Location { get; set; }
     
     public string? EmploymentType { get; set; }
+
+    public string? ExperienceLevel { get; set; }
+
+    public string? SeniorityLevel { get; set; }
     
     public DateTime? Deadline { get; set; } // Map từ Job.ClosedAt
     

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { AuthService } from '../../../services/auth.service';
 import { NotificationService, NotificationDto } from '../../../services/notification.service';
+import { CandidateService } from '../../../services/candidate.service';
 
 @Component({
     selector: 'app-candidate-header',
@@ -13,8 +14,10 @@ import { NotificationService, NotificationDto } from '../../../services/notifica
 })
 export class CandidateHeaderComponent implements OnInit, OnDestroy {
     isLoggedIn = false;
-    userFullName = '';
-    userRole = '';
+    userFullName = 'Người dùng';
+    userRole = 'CANDIDATE';
+    userEmail = '';
+    avatarUrl = '';
 
     unreadCount = 0;
     notifications: NotificationDto[] = [];
@@ -26,6 +29,7 @@ export class CandidateHeaderComponent implements OnInit, OnDestroy {
     constructor(
         private authService: AuthService,
         private notificationService: NotificationService,
+        private candidateService: CandidateService,
         private router: Router
     ) { }
 
@@ -46,15 +50,21 @@ export class CandidateHeaderComponent implements OnInit, OnDestroy {
                     const payload = JSON.parse(atob(token.split('.')[1]));
 
                     // Lấy thông tin từ JWT claims (hỗ trợ cả short name và full claim name)
-                    this.userRole = payload.role ||
+                    this.userRole = (payload.role ||
                         payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] ||
-                        'CANDIDATE';
+                        'CANDIDATE').toString().toUpperCase();
 
                     this.userFullName = payload.name ||
                         payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] ||
-                        'User';
+                        'Người dùng';
+
+                    this.userEmail = payload.email ||
+                        payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'] ||
+                        '';
 
                     console.log('Header loaded user:', this.userFullName, 'Role:', this.userRole);
+
+                    this.loadAccountInfo();
 
                     // Load notifications if candidate
                     if (this.userRole === 'CANDIDATE') {
@@ -67,13 +77,54 @@ export class CandidateHeaderComponent implements OnInit, OnDestroy {
                     }
                 } catch (e) {
                     console.error('Error parsing token in header:', e);
-                    this.userFullName = 'User';
+                    this.userFullName = 'Người dùng';
                     this.userRole = 'CANDIDATE';
                 }
             } else {
                 console.log('No token found in header component');
             }
         }
+    }
+
+    private loadAccountInfo(): void {
+        this.candidateService.getProfile().subscribe({
+            next: (profile) => {
+                if (profile.fullName?.trim()) {
+                    this.userFullName = profile.fullName.trim();
+                }
+                if (profile.email?.trim()) {
+                    this.userEmail = profile.email.trim();
+                }
+                if (profile.avatar?.trim()) {
+                    this.avatarUrl = this.toAbsoluteAvatarUrl(profile.avatar.trim());
+                }
+            },
+            error: (err) => {
+                console.warn('Cannot load candidate profile for header, using token fallback.', err);
+            }
+        });
+    }
+
+    private toAbsoluteAvatarUrl(url: string): string {
+        if (url.startsWith('http://') || url.startsWith('https://')) {
+            return url;
+        }
+        const clean = url.startsWith('/') ? url.slice(1) : url;
+        return `https://localhost:7181/${clean}`;
+    }
+
+    get roleLabel(): string {
+        const roleMap: Record<string, string> = {
+            CANDIDATE: 'Ứng viên',
+            HR: 'Nhân sự',
+            ADMIN: 'Quản trị viên',
+            INTERVIEWER: 'Phỏng vấn viên'
+        };
+        return roleMap[this.userRole] || this.userRole;
+    }
+
+    get avatarFallbackUrl(): string {
+        return `https://ui-avatars.com/api/?name=${encodeURIComponent(this.userFullName)}&background=3B82F6&color=fff&bold=true`;
     }
 
     ngOnDestroy(): void {
@@ -127,7 +178,14 @@ export class CandidateHeaderComponent implements OnInit, OnDestroy {
     }
 
     formatDate(dateStr: string): string {
-        const date = new Date(dateStr);
+        const hasTimezone = /Z$|[+-]\d{2}:?\d{2}$/.test(dateStr);
+        const normalizedDateStr = hasTimezone ? dateStr : `${dateStr}Z`;
+        const date = new Date(normalizedDateStr);
+
+        if (Number.isNaN(date.getTime())) {
+            return dateStr;
+        }
+
         return date.toLocaleDateString('vi-VN', {
             hour: '2-digit',
             minute: '2-digit',

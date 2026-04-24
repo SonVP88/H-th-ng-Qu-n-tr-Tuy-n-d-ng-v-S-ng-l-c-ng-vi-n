@@ -269,11 +269,16 @@ Lưu ý:
                 throw new InvalidOperationException("Gemini API key not configured");
             }
 
+            // ✅ Thêm timestamp để force Gemini không cache
+            var timestamp = DateTime.UtcNow.Ticks;
+
             // Tạo prompt dựa trên status
             string prompt;
             if (status == "HIRED")
             {
-                prompt = $@"Viết một email chúc mừng ứng viên {candidateName} đã trúng tuyển vị trí {jobTitle} tại công ty {companyName}.
+                prompt = $@"[Request ID: {timestamp}]
+
+Viết một email chúc mừng ứng viên {candidateName} đã trúng tuyển vị trí {jobTitle} tại công ty {companyName}.
 
 Yêu cầu:
 - Văn phong chuyên nghiệp, hào hứng, nhiệt tình
@@ -287,7 +292,9 @@ Yêu cầu:
             }
             else // REJECTED
             {
-                prompt = $@"Viết một email từ chối lịch sự gửi đến ứng viên {candidateName} cho vị trí {jobTitle} tại công ty {companyName}.
+                prompt = $@"[Request ID: {timestamp}]
+
+Viết một email từ chối lịch sự gửi đến ứng viên {candidateName} cho vị trí {jobTitle} tại công ty {companyName}.
 
 Yêu cầu:
 - Văn phong lịch sự, tinh tế, tôn trọng

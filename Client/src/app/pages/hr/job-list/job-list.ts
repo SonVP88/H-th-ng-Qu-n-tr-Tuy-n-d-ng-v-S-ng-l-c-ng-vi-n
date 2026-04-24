@@ -4,6 +4,7 @@ import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { JobService, JobDto } from '../../../services/job.service';
 import { ToastService } from '../../../services/toast.service';
+import { PopupService } from '../../../services/popup.service';
 
 @Component({
     selector: 'app-job-list',
@@ -15,6 +16,7 @@ export class JobListComponent implements OnInit {
     private jobService = inject(JobService);
     private cdr = inject(ChangeDetectorRef);
     private toast = inject(ToastService);
+    private popup = inject(PopupService);
 
     // Using signals like employee management
     jobs = signal<JobDto[]>([]);
@@ -66,7 +68,7 @@ export class JobListComponent implements OnInit {
                 console.log(`[JobList] 🏁 Tổng thời gian từ lúc vào trang đến khi xong: ${(processEnd - loadStart).toFixed(2)}ms`);
             },
             error: (err: any) => {
-                console.error('[JobList] ❌ Lỗi khi tải jobs:', err);
+                console.error('[JobList]  Lỗi khi tải jobs:', err);
                 this.isLoading.set(false);
                 this.cdr.detectChanges();
             }
@@ -121,43 +123,64 @@ export class JobListComponent implements OnInit {
         });
     }
 
-    onDelete(id: string): void {
-        if (confirm('Bạn có chắc chắn muốn xóa tin tuyển dụng này không? Hành động này không thể hoàn tác.')) {
-            this.jobService.deleteJob(id).subscribe({
-                next: () => {
-                    this.toast.success('Xóa thành công', 'Tin tuyển dụng đã được xóa.');
-                    this.loadJobs();
-                },
-                error: () => this.toast.error('Xóa thất bại', 'Đã xảy ra lỗi khi xóa tin công việc.')
-            });
-        }
+    async onDelete(id: string): Promise<void> {
+        const confirmed = await this.popup.confirm({
+            title: 'Xóa tin tuyển dụng',
+            message: 'Bạn có chắc chắn muốn xóa tin tuyển dụng này không? Hành động này không thể hoàn tác.',
+            confirmText: 'Xóa',
+            cancelText: 'Hủy',
+            tone: 'danger',
+        });
+        if (!confirmed) return;
+
+        this.jobService.deleteJob(id).subscribe({
+            next: () => {
+                this.toast.success('Xóa thành công', 'Tin tuyển dụng đã được xóa.');
+                this.loadJobs();
+            },
+            error: () => this.toast.error('Xóa thất bại', 'Đã xảy ra lỗi khi xóa tin công việc.')
+        });
     }
 
-    onClose(id: string): void {
-        if (confirm('Bạn có chắc chắn muốn ngừng đăng tin này?')) {
-            this.jobService.closeJob(id).subscribe({
-                next: () => {
-                    this.toast.success('Đã ngừng đăng tin', 'Tin tuyển dụng sẽ bị ẩn khỏi trang tìm kiếm.');
-                    this.loadJobs();
-                },
-                error: () => this.toast.error('Thất bại', 'Đã xảy ra lỗi khi ngừng đăng tin.')
-            });
-        }
+    async onClose(id: string): Promise<void> {
+        const confirmed = await this.popup.confirm({
+            title: 'Ngừng đăng tin',
+            message: 'Bạn có chắc chắn muốn ngừng đăng tin này?',
+            confirmText: 'Ngừng đăng',
+            cancelText: 'Hủy',
+            tone: 'danger',
+        });
+        if (!confirmed) return;
+
+        this.jobService.closeJob(id).subscribe({
+            next: () => {
+                this.toast.success('Đã ngừng đăng tin', 'Tin tuyển dụng sẽ bị ẩn khỏi trang tìm kiếm.');
+                this.loadJobs();
+            },
+            error: () => this.toast.error('Thất bại', 'Đã xảy ra lỗi khi ngừng đăng tin.')
+        });
     }
 
-    onOpen(id: string): void {
-        if (confirm('Bạn có muốn mở lại tin tuyển dụng này?')) {
-            this.jobService.openJob(id).subscribe({
-                next: () => {
-                    this.toast.success('Đã mở lại tin', 'Tin tuyển dụng đã xuất hiện lại trên trang tìm kiếm.');
-                    this.loadJobs();
-                },
-                error: (err: any) => {
-                    const errorMsg = err.error?.message || 'Đã xảy ra lỗi khi mở lại tin.';
-                    this.toast.error('Thất bại', errorMsg);
-                }
-            });
-        }
+    async onOpen(id: string): Promise<void> {
+        const confirmed = await this.popup.confirm({
+            title: 'Mở lại tin tuyển dụng',
+            message: 'Bạn có muốn mở lại tin tuyển dụng này?',
+            confirmText: 'Mở lại',
+            cancelText: 'Hủy',
+            tone: 'primary',
+        });
+        if (!confirmed) return;
+
+        this.jobService.openJob(id).subscribe({
+            next: () => {
+                this.toast.success('Đã mở lại tin', 'Tin tuyển dụng đã xuất hiện lại trên trang tìm kiếm.');
+                this.loadJobs();
+            },
+            error: (err: any) => {
+                const errorMsg = err.error?.message || 'Đã xảy ra lỗi khi mở lại tin.';
+                this.toast.error('Thất bại', errorMsg);
+            }
+        });
     }
 
     // Pagination methods

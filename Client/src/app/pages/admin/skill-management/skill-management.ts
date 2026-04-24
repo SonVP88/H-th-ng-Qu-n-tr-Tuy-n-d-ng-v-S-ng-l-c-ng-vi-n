@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { environment } from '../../../../environments/environment';
 import { ToastService } from '../../../services/toast.service';
+import { PopupService } from '../../../services/popup.service';
 
 interface Skill {
     skillId: string;
@@ -47,7 +48,8 @@ export class SkillManagementComponent implements OnInit {
         private http: HttpClient,
         private cdr: ChangeDetectorRef,
         private ngZone: NgZone,
-        private toast: ToastService
+        private toast: ToastService,
+        private popup: PopupService
     ) { }
 
     ngOnInit(): void {
@@ -85,6 +87,8 @@ export class SkillManagementComponent implements OnInit {
                     console.error('Skills API error:', err.status, err.message);
                     this.ngZone.run(() => {
                         this.skills = [];
+                        const errorMsg = err.error?.message || 'Không thể tải danh sách kỹ năng';
+                        this.toast.error('Lỗi', errorMsg);
                         this.cdr.detectChanges();
                     });
                 }
@@ -157,9 +161,16 @@ export class SkillManagementComponent implements OnInit {
         });
     }
 
-    toggleSkillStatus(skill: Skill): void {
+    async toggleSkillStatus(skill: Skill): Promise<void> {
         const actionStr = skill.isDeleted ? 'Mở khóa' : 'Khóa';
-        if (!confirm(`Bạn có chắc muốn ${actionStr} kỹ năng "${skill.name}"?`)) return;
+        const confirmed = await this.popup.confirm({
+            title: `${actionStr} kỹ năng`,
+            message: `Bạn có chắc muốn ${actionStr.toLowerCase()} kỹ năng "${skill.name}"?`,
+            confirmText: actionStr,
+            cancelText: 'Hủy',
+            tone: skill.isDeleted ? 'primary' : 'danger',
+        });
+        if (!confirmed) return;
 
         const headers = this.getAuthHeaders();
         this.ngZone.runOutsideAngular(() => {

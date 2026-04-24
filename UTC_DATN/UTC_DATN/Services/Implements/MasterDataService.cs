@@ -113,7 +113,7 @@ namespace UTC_DATN.Services.Implements
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Lỗi khi gọi API provinces.open-api.vn");
+                _logger.LogError(ex, " Lỗi khi gọi API provinces.open-api.vn");
                 throw new Exception("Không thể lấy danh sách tỉnh/thành phố", ex);
             }
         }
@@ -145,7 +145,7 @@ namespace UTC_DATN.Services.Implements
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    _logger.LogError("❌ API trả về lỗi: {StatusCode}", response.StatusCode);
+                    _logger.LogError(" API trả về lỗi: {StatusCode}", response.StatusCode);
                     return new List<WardDto>();
                 }
 
@@ -182,7 +182,7 @@ namespace UTC_DATN.Services.Implements
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Lỗi khi lấy danh sách phường/xã");
+                _logger.LogError(ex, " Lỗi khi lấy danh sách phường/xã");
                 return new List<WardDto>();
             }
         }

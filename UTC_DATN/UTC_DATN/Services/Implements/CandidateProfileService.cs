@@ -87,6 +87,16 @@ namespace UTC_DATN.Services.Implements
                 }
             }
 
+            var uniqueCvDocs = candidate.CandidateDocuments
+                .Where(cd => cd.DocType == "CV")
+                .OrderByDescending(cd => cd.IsPrimary)
+                .ThenByDescending(cd => cd.CreatedAt)
+                .GroupBy(cd => !string.IsNullOrWhiteSpace(cd.File?.Sha256)
+                    ? cd.File!.Sha256
+                    : cd.FileId.ToString())
+                .Select(g => g.First())
+                .ToList();
+
             return new CandidateProfileDto
             {
                 CandidateId = candidate!.CandidateId,
@@ -106,7 +116,7 @@ namespace UTC_DATN.Services.Implements
                     Level = cs.Level,
                     Years = cs.Years
                 }).ToList(),
-                Documents = candidate.CandidateDocuments.Select(cd => new CandidateDocumentDto
+                Documents = uniqueCvDocs.Select(cd => new CandidateDocumentDto
                 {
                     DocumentId = cd.CandidateDocumentId,
                     FileName = cd.File?.OriginalFileName ?? "",
@@ -115,7 +125,7 @@ namespace UTC_DATN.Services.Implements
                     SizeBytes = cd.File?.SizeBytes,
                     CreatedAt = cd.CreatedAt,
                     IsPrimary = cd.IsPrimary,
-                    DisplayName = (!string.IsNullOrWhiteSpace(cd.DisplayName) ? cd.DisplayName + " [DB]" : (cd.File?.OriginalFileName + " [FILE]" ?? ""))
+                    DisplayName = !string.IsNullOrWhiteSpace(cd.DisplayName) ? cd.DisplayName : (cd.File?.OriginalFileName ?? "")
                 }).ToList()
             };
         }
@@ -134,6 +144,16 @@ namespace UTC_DATN.Services.Implements
                 .FirstOrDefaultAsync(c => c.CandidateId == candidateId && !c.IsDeleted);
 
             if (candidate == null) return null;
+
+            var uniqueCvDocs = candidate.CandidateDocuments
+                .Where(cd => cd.DocType == "CV")
+                .OrderByDescending(cd => cd.IsPrimary)
+                .ThenByDescending(cd => cd.CreatedAt)
+                .GroupBy(cd => !string.IsNullOrWhiteSpace(cd.File?.Sha256)
+                    ? cd.File!.Sha256
+                    : cd.FileId.ToString())
+                .Select(g => g.First())
+                .ToList();
 
             return new CandidateProfileDto
             {
@@ -154,7 +174,7 @@ namespace UTC_DATN.Services.Implements
                     Level = cs.Level,
                     Years = cs.Years
                 }).ToList(),
-                Documents = candidate.CandidateDocuments.Select(cd => new CandidateDocumentDto
+                Documents = uniqueCvDocs.Select(cd => new CandidateDocumentDto
                 {
                     DocumentId = cd.CandidateDocumentId,
                     FileName = cd.File?.OriginalFileName ?? "",

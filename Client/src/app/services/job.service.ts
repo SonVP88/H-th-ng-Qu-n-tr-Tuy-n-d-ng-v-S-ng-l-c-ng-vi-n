@@ -14,6 +14,8 @@ export interface CreateJobRequest {
     salaryMax?: number;
     location?: string;
     employmentType?: string;
+    experienceLevel?: string;
+    seniorityLevel?: string;
     deadline?: string; // ISO date string
     skillIds: string[];
 }
@@ -32,6 +34,8 @@ export interface JobDto {
     salaryMin?: number;
     salaryMax?: number;
     employmentType?: string;
+    experienceLevel?: string;
+    seniorityLevel?: string;
     deadline?: string;
     createdDate: string;
     status?: string;

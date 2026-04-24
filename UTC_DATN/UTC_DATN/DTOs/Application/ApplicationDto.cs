@@ -25,5 +25,9 @@ public class ApplicationDto
     public int? SlaOverdueDays { get; set; }
     public int? SlaMaxDays { get; set; }
     public int? SlaWarnBeforeDays { get; set; }
+
+    public string? JobStatus { get; set; }
+    public int? JobNumberOfPositions { get; set; }
+    public int JobTotalHired { get; set; }
 }
 

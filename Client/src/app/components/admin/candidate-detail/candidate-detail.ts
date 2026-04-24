@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { OfferModalComponent } from '../offer-modal/offer-modal';
 import { ApplicationService, CandidateProfileDto } from '../../../services/application.service';
 import { ToastService } from '../../../services/toast.service';
+import { PopupService } from '../../../services/popup.service';
 
 // HR chỉ được advance đến Pending_Offer qua pipeline.
 // Ứng viên phản hồi Offer sẽ thành OFFER_ACCEPTED; HR xác nhận cuối cùng mới thành HIRED.
@@ -29,11 +30,13 @@ export class CandidateDetail implements OnInit {
   private http = inject(HttpClient);
   private appService = inject(ApplicationService);
   private toast = inject(ToastService);
+  private popup = inject(PopupService);
 
   profile = signal<CandidateProfileDto | null>(null);
   isLoadingProfile = signal(false);
   isUpdatingStatus = signal(false);
   isDownloading = signal(false);
+  isSendingEmail = signal(false);
   routerDataSig = signal<any>(null);
   showOfferModal = signal(false);
 
@@ -103,7 +106,7 @@ export class CandidateDetail implements OnInit {
         this.isLoadingProfile.set(false);
       },
       error: (err: any) => {
-        console.error('❌ Profile load error:', err);
+        console.error(' Profile load error:', err);
         this.isLoadingProfile.set(false);
       }
     });
@@ -139,7 +142,7 @@ export class CandidateDetail implements OnInit {
         this.isUpdatingStatus.set(false);
       },
       error: (err: any) => {
-        console.error('❌ Update status error:', err);
+        console.error(' Update status error:', err);
         this.toast.error('Lỗi', 'Không thể cập nhật trạng thái.');
         this.isUpdatingStatus.set(false);
       }
@@ -203,7 +206,7 @@ export class CandidateDetail implements OnInit {
         this.isDownloading.set(false);
       },
       error: (err) => {
-        console.error('❌ Download error:', err);
+        console.error(' Download error:', err);
         // Fallback: mở trực tiếp
         window.open(url, '_blank');
         this.isDownloading.set(false);
@@ -212,8 +215,15 @@ export class CandidateDetail implements OnInit {
   }
 
   // ── Other actions ─────────────────────────────────────
-  rejectCandidate(): void {
-    if (!confirm(`Từ chối ứng viên "${this.name}"?`)) return;
+  async rejectCandidate(): Promise<void> {
+    const confirmed = await this.popup.confirm({
+      title: 'Xác nhận từ chối ứng viên',
+      message: `Bạn có chắc muốn từ chối ứng viên "${this.name}"?`,
+      confirmText: 'Từ chối',
+      cancelText: 'Hủy',
+      tone: 'danger',
+    });
+    if (!confirmed) return;
     this.isUpdatingStatus.set(true);
     this.appService.updateApplicationStatus(this.rd.applicationId, 'REJECTED').subscribe({
       next: () => {
@@ -228,10 +238,63 @@ export class CandidateDetail implements OnInit {
     });
   }
 
-  sendEmail(): void {
-    const sub = encodeURIComponent(`[V9 TECH] Phản hồi hồ sơ - ${this.rd?.jobTitle || ''}`);
-    const body = encodeURIComponent(`Kính gửi ${this.name},\n\nCảm ơn bạn đã ứng tuyển.\n\nTrân trọng,\nPhòng Nhân sự`);
-    window.open(`mailto:${this.email}?subject=${sub}&body=${body}`);
+  async sendEmail(): Promise<void> {
+    if (!this.email) {
+      await this.popup.alert({
+        title: 'Thiếu email ứng viên',
+        message: 'Hồ sơ này chưa có email liên hệ để gửi thư.',
+        confirmText: 'Đã hiểu',
+        tone: 'danger',
+      });
+      return;
+    }
+
+    const confirmed = await this.popup.confirm({
+      title: 'Gửi email cho ứng viên',
+      message: `Gửi email phản hồi tới ${this.name} ngay trong hệ thống?`,
+      confirmText: 'Gửi email',
+      cancelText: 'Hủy',
+      tone: 'primary',
+    });
+
+    if (!confirmed) return;
+
+    this.isSendingEmail.set(true);
+
+    const token = localStorage.getItem('auth_token');
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    };
+
+    const subject = `[V9 TECH] Phản hồi hồ sơ - ${this.rd?.jobTitle || ''}`;
+    const bodyHtml = `
+      <p>Kính gửi <strong>${this.name}</strong>,</p>
+      <p>Cảm ơn bạn đã ứng tuyển vào vị trí <strong>${this.rd?.jobTitle || 'Vị trí tuyển dụng'}</strong>.</p>
+      <p>Chúng tôi sẽ sớm cập nhật trạng thái tiếp theo của hồ sơ.</p>
+      <p>Trân trọng,<br>Phòng Nhân sự - V9 TECH</p>
+    `;
+
+    this.http.post('/api/interviews/send-email-manual', {
+      toEmail: this.email,
+      subject,
+      bodyHtml
+    }, { headers }).subscribe({
+      next: () => {
+        this.isSendingEmail.set(false);
+        this.toast.success('Đã gửi email', `Đã gửi email tới ${this.name}.`);
+      },
+      error: async (err) => {
+        console.error(' Send email error:', err);
+        this.isSendingEmail.set(false);
+        await this.popup.alert({
+          title: 'Gửi email thất bại',
+          message: 'Có lỗi khi gửi email. Vui lòng thử lại.',
+          confirmText: 'Đã hiểu',
+          tone: 'danger',
+        });
+      }
+    });
   }
 
   onOpenOffer(): void { this.showOfferModal.set(true); }

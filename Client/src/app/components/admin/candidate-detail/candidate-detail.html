@@ -87,11 +87,6 @@
             class="flex items-center gap-2 px-5 h-10 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold text-sm shadow-lg transition-all">
             <span class="material-symbols-outlined text-[18px]">mail</span>Gửi Offer
           </button>
-
-          <!-- <button (click)="sendEmail()"
-            class="flex items-center gap-2 px-5 h-10 rounded-lg bg-primary hover:bg-blue-700 text-white font-semibold text-sm shadow-sm transition-colors">
-            <span class="material-symbols-outlined text-[18px]">email</span>Gửi Email
-          </button> -->
         </div>
       </div>
 
@@ -125,7 +120,7 @@
         </div>
         <p *ngIf="currentStatus === 'HIRED'" class="text-center text-green-600 font-semibold text-sm mt-3">✅ Ứng viên đã
           được tuyển dụng!</p>
-        <p *ngIf="currentStatus === 'REJECTED'" class="text-center text-red-500 font-semibold text-sm mt-3">❌ Hồ sơ đã
+        <p *ngIf="currentStatus === 'REJECTED'" class="text-center text-red-500 font-semibold text-sm mt-3"> Hồ sơ đã
           bị từ chối.</p>
         <p *ngIf="currentStatus === 'Offer_Sent'" class="text-center text-purple-600 text-sm mt-3">⏳ Đã gửi Offer - Đang
           chờ ứng viên phản hồi...</p>

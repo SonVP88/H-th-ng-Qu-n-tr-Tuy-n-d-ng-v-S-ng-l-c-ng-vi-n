@@ -6,6 +6,7 @@ import { Router, RouterModule } from '@angular/router';
 import { CandidateHeaderComponent } from '../../../components/shared/candidate-header/candidate-header';
 import { AuthService } from '../../../services/auth.service';
 import { CandidateFooter } from '../../../components/shared/candidate-footer/candidate-footer';
+import { PopupService } from '../../../services/popup.service';
 
 @Component({
   selector: 'app-my-applications',
@@ -19,6 +20,7 @@ export class MyApplications implements OnInit {
   private authService = inject(AuthService);
   private cdr = inject(ChangeDetectorRef);
   private platformId = inject(PLATFORM_ID);
+  private popup = inject(PopupService);
 
   // Properties (NON-SIGNAL)
   myApplications: MyApplicationDto[] = [];
@@ -253,18 +255,28 @@ export class MyApplications implements OnInit {
   /**
    * Ứng viên phản hồi Offer: Đồng ý (OFFER_ACCEPTED) hoặc Từ chối (REJECTED)
    */
-  acceptOffer(app: MyApplicationDto): void {
-    const confirmAccept = confirm(`Bạn chắc chắn muốn ĐỒNG Ý nhận việc tại "${app.jobTitle}"?`);
-    if (!confirmAccept) return;
+  async acceptOffer(app: MyApplicationDto): Promise<void> {
+    const confirmed = await this.popup.confirm({
+      title: 'Xác nhận đồng ý Offer',
+      message: `Bạn chắc chắn muốn ĐỒNG Ý nhận việc tại "${app.jobTitle}"?`,
+      confirmText: 'Đồng ý',
+      cancelText: 'Hủy',
+      tone: 'primary',
+    });
+    if (!confirmed) return;
 
     this.submitOfferResponse(app, 'OFFER_ACCEPTED');
   }
 
-  rejectOffer(app: MyApplicationDto): void {
-    const confirmReject = confirm(
-      `Bạn chắc chắn muốn TỪ CHỐI Offer tại "${app.jobTitle}"?\n\nHành động này có thể khiến hồ sơ chuyển sang trạng thái từ chối.`
-    );
-    if (!confirmReject) return;
+  async rejectOffer(app: MyApplicationDto): Promise<void> {
+    const confirmed = await this.popup.confirm({
+      title: 'Xác nhận từ chối Offer',
+      message: `Bạn chắc chắn muốn TỪ CHỐI Offer tại "${app.jobTitle}"?\n\nHành động này có thể khiến hồ sơ chuyển sang trạng thái từ chối.`,
+      confirmText: 'Từ chối',
+      cancelText: 'Không',
+      tone: 'danger',
+    });
+    if (!confirmed) return;
 
     this.submitOfferResponse(app, 'REJECTED');
   }
@@ -359,16 +371,19 @@ export class MyApplications implements OnInit {
   }
 
   /**
-   * Format ngày tháng
+   * Format ngày tháng theo timezone Vietnam (UTC+7)
    */
   formatDate(dateString: string): string {
     if (!dateString) return '-';
     const date = new Date(dateString);
-    return date.toLocaleDateString('vi-VN', {
+    
+    // Use Intl.DateTimeFormat with Asia/Ho_Chi_Minh timezone
+    return new Intl.DateTimeFormat('vi-VN', {
       day: '2-digit',
       month: '2-digit',
-      year: 'numeric'
-    });
+      year: 'numeric',
+      timeZone: 'Asia/Ho_Chi_Minh'
+    }).format(date);
   }
 
   /**
@@ -378,16 +393,22 @@ export class MyApplications implements OnInit {
     if (!dateString) return '';
     const date = new Date(dateString);
     
-    // Thêm 7 giờ offset cho Vietnam timezone (UTC+7)
-    const vietnamDate = new Date(date.getTime() + 7 * 60 * 60 * 1000);
+    // Format date and time separately for better control
+    const dateFormatter = new Intl.DateTimeFormat('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      timeZone: 'Asia/Ho_Chi_Minh'
+    });
     
-    const day = String(vietnamDate.getUTCDate()).padStart(2, '0');
-    const month = String(vietnamDate.getUTCMonth() + 1).padStart(2, '0');
-    const year = vietnamDate.getUTCFullYear();
-    const hour = String(vietnamDate.getUTCHours()).padStart(2, '0');
-    const minute = String(vietnamDate.getUTCMinutes()).padStart(2, '0');
+    const timeFormatter = new Intl.DateTimeFormat('vi-VN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+      timeZone: 'Asia/Ho_Chi_Minh'
+    });
     
-    return `${day}/${month}/${year} ${hour}:${minute}`;
+    return `${dateFormatter.format(date)} ${timeFormatter.format(date)}`;
   }
 
   /**

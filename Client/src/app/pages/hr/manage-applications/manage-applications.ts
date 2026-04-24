@@ -7,6 +7,7 @@ import { ApplicationService, ApplicationDto } from '../../../services/applicatio
 import { JobService } from '../../../services/job.service';
 import { OfferModalComponent } from '../../../components/admin/offer-modal/offer-modal';
 import { ToastService } from '../../../services/toast.service';
+import { PopupService } from '../../../services/popup.service';
 
 interface InterviewForm {
   date: string;
@@ -21,6 +22,20 @@ interface InterviewerListItem {
   fullName: string;
   email: string;
   roleName: string;
+}
+
+interface RecommendedCandidate {
+  candidateId: string;
+  userId?: string;
+  fullName: string;
+  email?: string;
+  title?: string;
+  avatarUrl?: string;
+  yearsOfExperience?: number;
+  skills?: string[];
+  matchScore?: number;
+  matchedSkillsCount?: number;
+  totalRequiredSkills?: number;
 }
 
 @Component({
@@ -39,11 +54,14 @@ export class ManageApplications implements OnInit, OnDestroy {
 
   private toast = inject(ToastService);
   private ngZone = inject(NgZone);
+  private popup = inject(PopupService);
 
   // Tabs
   activeTab: 'APPLICATIONS' | 'RECOMMENDATIONS' = 'APPLICATIONS';
-  recommendedCandidates: any[] = [];
+  recommendedCandidates: RecommendedCandidate[] = [];
   isLoadingRecommendations = false;
+  isSendingInviteMap: Record<string, boolean> = {};
+  invitedCandidateIds = new Set<string>();
 
   // Modal state
   showInterviewModal = false;
@@ -171,10 +189,10 @@ export class ManageApplications implements OnInit, OnDestroy {
 
   // Chuyển tab và load data nếu cần
   switchTab(tab: 'APPLICATIONS' | 'RECOMMENDATIONS'): void {
-    this.activeTab = tab;
-    if (tab === 'RECOMMENDATIONS' && this.recommendedCandidates.length === 0 && this.jobId) {
-      this.loadRecommendedCandidates();
+    if (tab === 'RECOMMENDATIONS') {
+      return;
     }
+    this.activeTab = tab;
   }
 
   loadRecommendedCandidates(): void {
@@ -183,7 +201,7 @@ export class ManageApplications implements OnInit, OnDestroy {
 
     this.ngZone.runOutsideAngular(() => {
       this.jobService.getRecommendedCandidates(this.jobId, 10).subscribe({
-        next: (candidates) => {
+        next: (candidates: RecommendedCandidate[]) => {
           this.ngZone.run(() => {
             this.recommendedCandidates = candidates;
             this.isLoadingRecommendations = false;
@@ -198,6 +216,115 @@ export class ManageApplications implements OnInit, OnDestroy {
           });
         }
       });
+    });
+  }
+
+  hasAppliedToCurrentJob(candidate: RecommendedCandidate): boolean {
+    return this.applications.some(a => a.candidateId === candidate.candidateId);
+  }
+
+  isInviteSending(candidate: RecommendedCandidate): boolean {
+    return this.isSendingInviteMap[candidate.candidateId] === true;
+  }
+
+  async inviteRecommendedCandidate(candidate: RecommendedCandidate): Promise<void> {
+    if (!this.jobId) {
+      await this.popup.alert({
+        title: 'Thiếu thông tin Job',
+        message: 'Không xác định được vị trí tuyển dụng để gửi thư mời.',
+        confirmText: 'Đã hiểu',
+        tone: 'danger'
+      });
+      return;
+    }
+
+    if (this.hasAppliedToCurrentJob(candidate)) {
+      await this.popup.alert({
+        title: 'Ứng viên đã nộp hồ sơ',
+        message: `${candidate.fullName} đã ứng tuyển vị trí này. Bạn có thể xử lý trong danh sách hồ sơ ứng tuyển.`,
+        confirmText: 'Đã hiểu',
+        tone: 'neutral'
+      });
+      return;
+    }
+
+    if (!candidate.email) {
+      await this.popup.alert({
+        title: 'Thiếu email ứng viên',
+        message: 'Không thể gửi thư mời vì hồ sơ ứng viên chưa có email liên hệ.',
+        confirmText: 'Đã hiểu',
+        tone: 'danger'
+      });
+      return;
+    }
+
+    const ok = await this.popup.confirm({
+      title: 'Gửi thư mời ứng tuyển',
+      message: `Gửi email mời ${candidate.fullName} ứng tuyển vào vị trí hiện tại?`,
+      confirmText: 'Gửi thư mời',
+      cancelText: 'Hủy',
+      tone: 'primary'
+    });
+
+    if (!ok) return;
+
+    this.isSendingInviteMap[candidate.candidateId] = true;
+    this.cdr.detectChanges();
+
+    const token = localStorage.getItem('auth_token');
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
+
+    const currentJobTitle = this.applications[0]?.jobTitle || 'vị trí tuyển dụng';
+    const emailBody = {
+      toEmail: candidate.email,
+      subject: `[V9 TECH] Thư mời ứng tuyển - ${currentJobTitle}`,
+      bodyHtml: `Xin chào ${candidate.fullName},<br><br>` +
+        `V9 TECH nhận thấy hồ sơ của bạn phù hợp với vị trí <b>${currentJobTitle}</b> (độ phù hợp AI: <b>${candidate.matchScore ?? 0}%</b>).<br>` +
+        `Nếu bạn quan tâm, vui lòng đăng nhập hệ thống tuyển dụng để xem chi tiết và nộp hồ sơ.<br><br>` +
+        `Trân trọng,<br>Phòng Nhân sự - V9 TECH`
+    };
+
+    this.http.post(`${this.apiUrl}/interviews/send-email-manual`, emailBody, { headers }).subscribe({
+      next: () => {
+        this.invitedCandidateIds.add(candidate.candidateId);
+        this.isSendingInviteMap[candidate.candidateId] = false;
+        this.toast.success('Đã gửi thư mời', `Đã gửi thư mời ứng tuyển tới ${candidate.fullName}.`);
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        console.error('Error sending sourcing invite:', error);
+        this.isSendingInviteMap[candidate.candidateId] = false;
+        this.toast.error('Gửi thư mời thất bại', 'Có lỗi khi gửi email mời ứng tuyển. Vui lòng thử lại.');
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  viewRecommendedCandidateProfile(candidate: RecommendedCandidate): void {
+    const matchedApplication = this.applications.find(a => a.candidateId === candidate.candidateId);
+    if (matchedApplication) {
+      this.viewCandidateDetail(matchedApplication);
+      return;
+    }
+
+    this.router.navigate(['/hr/candidate-detail'], {
+      state: {
+        candidate: {
+          applicationId: '',
+          candidateId: candidate.candidateId,
+          candidateName: candidate.fullName,
+          email: candidate.email ?? '',
+          phone: '',
+          jobTitle: this.applications[0]?.jobTitle ?? '',
+          appliedAt: new Date().toISOString(),
+          status: 'PENDING',
+          cvUrl: '',
+          matchScore: candidate.matchScore ?? null,
+        }
+      }
     });
   }
 
@@ -382,7 +509,9 @@ export class ManageApplications implements OnInit, OnDestroy {
 
   getSlaTooltip(app: ApplicationDto): string {
     if (app.status === 'Waitlist') {
-      return 'Hồ sơ tạm dừng SLA vì job đã đủ chỉ tiêu và đang ở danh sách chờ.';
+      return this.isWaitlistBecauseJobFull(app)
+        ? 'Hồ sơ tạm dừng SLA vì job đã đủ chỉ tiêu và đang chờ HR xử lý thủ công.'
+        : 'Hồ sơ tạm dừng SLA vì đang ở trạng thái cân nhắc sau phỏng vấn.';
     }
 
     if (app.status === 'HIRED' || app.status === 'OFFER_ACCEPTED' || app.status === 'REJECTED') {
@@ -398,10 +527,40 @@ export class ManageApplications implements OnInit, OnDestroy {
     return `Stage: ${stage} | Hạn SLA: ${due}`;
   }
 
+  isWaitlistBecauseJobFull(app: ApplicationDto): boolean {
+    return app.status === 'Waitlist'
+      && app.jobNumberOfPositions != null
+      && (app.jobTotalHired ?? 0) >= app.jobNumberOfPositions;
+  }
+
+  getWaitlistText(app: ApplicationDto): string {
+    return this.isWaitlistBecauseJobFull(app)
+      ? 'Đã đủ chỉ tiêu, hồ sơ đang chờ HR xử lý thủ công'
+      : 'Đang cân nhắc sau phỏng vấn';
+  }
+
+  getWaitlistSourceLabel(app: ApplicationDto): string {
+    return this.isWaitlistBecauseJobFull(app)
+      ? 'Do job đã đủ chỉ tiêu'
+      : 'Do kết quả phỏng vấn';
+  }
+
+  getWaitlistSourceHint(app: ApplicationDto): string {
+    return this.isWaitlistBecauseJobFull(app)
+      ? `Đã tuyển ${app.jobTotalHired ?? 0}/${app.jobNumberOfPositions ?? 0}`
+      : 'Ứng viên đang được giữ lại để HR xem xét tiếp';
+  }
+
+  getWaitlistAccentClass(app: ApplicationDto): string {
+    return this.isWaitlistBecauseJobFull(app)
+      ? 'bg-amber-50 text-amber-700 border-amber-200'
+      : 'bg-indigo-50 text-indigo-700 border-indigo-200';
+  }
+
   /**
    * Cập nhật trạng thái hồ sơ
    */
-  updateStatus(applicationId: string, newStatus: string): void {
+  async updateStatus(applicationId: string, newStatus: string): Promise<void> {
     // Nếu chọn INTERVIEW -> Mở modal phỏng vấn
     if (newStatus === 'INTERVIEW') {
       const app = this.applications.find(a => a.applicationId === applicationId);
@@ -409,6 +568,18 @@ export class ManageApplications implements OnInit, OnDestroy {
         this.openInterviewModal(app);
       }
       return;
+    }
+
+    // Waitlist -> Pending_Offer chỉ cho phép khi job chưa full chỉ tiêu
+    if (newStatus === 'Pending_Offer') {
+      const app = this.applications.find(a => a.applicationId === applicationId);
+      if (app && this.isWaitlistBecauseJobFull(app)) {
+        this.toast.warning(
+          'Không thể chuyển sang Offer',
+          'Job đã đủ chỉ tiêu. Vui lòng tăng số lượng tuyển nếu muốn gửi Offer thêm.'
+        );
+        return;
+      }
     }
 
     // Nếu chọn REJECTED -> Mở modal từ chối (Human-in-the-loop)
@@ -426,63 +597,79 @@ export class ManageApplications implements OnInit, OnDestroy {
       case 'HIRED':
         confirmMessage = 'Bạn chắc chắn muốn TUYỂN ứng viên này? Hành động này sẽ gửi thông báo đến ứng viên.';
         break;
+      case 'Pending_Offer':
+        confirmMessage = 'Chuyển ứng viên sang trạng thái chờ gửi Offer?';
+        break;
       default:
         confirmMessage = `Bạn có chắc muốn cập nhật trạng thái thành ${newStatus}?`;
     }
 
-    if (confirm(confirmMessage)) {
-      this.applicationService.updateApplicationStatus(applicationId, newStatus).subscribe({
-        next: (response) => {
-          if (response.success) {
-            // Cập nhật UI
-            const app = this.applications.find(a => a.applicationId === applicationId);
-            if (app) {
-              app.status = newStatus;
-            }
+    const confirmed = await this.popup.confirm({
+      title: 'Xác nhận cập nhật trạng thái',
+      message: confirmMessage,
+      confirmText: 'Xác nhận',
+      cancelText: 'Hủy',
+      tone: newStatus === 'REJECTED' ? 'danger' : 'primary',
+    });
 
-            let successMessage = '';
-            switch (newStatus) {
-              case 'HIRED':
-                successMessage = 'Chúc mừng! Đã tuyển ứng viên thành công!';
-                break;
-              case 'REJECTED':
-                successMessage = 'Đã từ chối ứng viên.';
-                break;
-              default:
-                successMessage = 'Cập nhật trạng thái thành công!';
-            }
+    if (!confirmed) return;
 
-            // Xử lý Suggest Close Job
-            if (newStatus === 'HIRED' && response.data) {
-              const data = response.data;
-              if (data.isJobActive && data.numberOfPositions != null && data.totalHired >= data.numberOfPositions) {
-                // Tạm thời tắt alert default nếu show confirm
-                setTimeout(() => {
-                  if (confirm(`Bạn đã tuyển đủ ${data.totalHired}/${data.numberOfPositions} vị trí cho Job này. Bạn có muốn ĐÓNG tin tuyển dụng ngay để ngừng nhận thêm CV không?`)) {
-                    this.jobService.closeJob(data.jobId).subscribe({
-                      next: () => {
-                        this.toast.success('Đã đóng Job', 'Tin tuyển dụng sẽ không còn hiển thị với ứng viên.');
-                      },
-                      error: (err) => {
-                        console.error('Lỗi khi đóng job:', err);
-                        this.toast.error('Lỗi đóng Job', 'Có lỗi xảy ra khi đóng Job!');
-                      }
-                    });
+    this.applicationService.updateApplicationStatus(applicationId, newStatus).subscribe({
+      next: async (response) => {
+        if (response.success) {
+          // Cập nhật UI
+          const app = this.applications.find(a => a.applicationId === applicationId);
+          if (app) {
+            app.status = newStatus;
+          }
+
+          let successMessage = '';
+          switch (newStatus) {
+            case 'HIRED':
+              successMessage = 'Chúc mừng! Đã tuyển ứng viên thành công!';
+              break;
+            case 'REJECTED':
+              successMessage = 'Đã từ chối ứng viên.';
+              break;
+            default:
+              successMessage = 'Cập nhật trạng thái thành công!';
+          }
+
+          // Xử lý Suggest Close Job
+          if (newStatus === 'HIRED' && response.data) {
+            const data = response.data;
+            if (data.isJobActive && data.numberOfPositions != null && data.totalHired >= data.numberOfPositions) {
+              const ok = await this.popup.confirm({
+                title: 'Job đã đủ chỉ tiêu',
+                message: `Bạn đã tuyển đủ ${data.totalHired}/${data.numberOfPositions} vị trí cho Job này. Bạn có muốn ĐÓNG tin tuyển dụng ngay để ngừng nhận thêm CV không?`,
+                confirmText: 'Đóng Job',
+                cancelText: 'Không',
+                tone: 'primary',
+              });
+
+              if (ok) {
+                this.jobService.closeJob(data.jobId).subscribe({
+                  next: () => {
+                    this.toast.success('Đã đóng Job', 'Tin tuyển dụng sẽ không còn hiển thị với ứng viên.');
+                  },
+                  error: (err) => {
+                    console.error('Lỗi khi đóng job:', err);
+                    this.toast.error('Lỗi đóng Job', 'Có lỗi xảy ra khi đóng Job!');
                   }
-                }, 100);
+                });
               }
             }
-
-            this.toast.success('Cập nhật thành công', successMessage);
-            this.cdr.detectChanges();
           }
-        },
-        error: (error) => {
-          console.error('Lỗi khi cập nhật trạng thái:', error);
-          this.toast.error('Cập nhật thất bại', 'Có lỗi xảy ra khi cập nhật trạng thái!');
+
+          this.toast.success('Cập nhật thành công', successMessage);
+          this.cdr.detectChanges();
         }
-      });
-    }
+      },
+      error: (err: any) => {
+        console.error('Lỗi khi cập nhật trạng thái:', err);
+        this.toast.error('Cập nhật thất bại', 'Có lỗi xảy ra khi cập nhật trạng thái!');
+      }
+    });
   }
 
   /**
@@ -654,7 +841,12 @@ Phòng Nhân sự`;
         },
         error: (error) => {
           console.error(' Error generating AI opening:', error);
-          alert('Có lỗi khi tạo nội dung AI. Vui lòng thử lại!');
+          void this.popup.alert({
+            title: 'Lỗi tạo nội dung AI',
+            message: 'Có lỗi khi tạo nội dung AI. Vui lòng thử lại!',
+            confirmText: 'Đã hiểu',
+            tone: 'danger',
+          });
           this.isGeneratingAI = false;
           this.cdr.detectChanges();
         }
@@ -747,7 +939,12 @@ Phòng Nhân sự`;
         },
         error: (error) => {
           console.error(' Error loading interviewers:', error);
-          alert('Có lỗi khi tải danh sách người phỏng vấn!');
+          void this.popup.alert({
+            title: 'Lỗi tải danh sách',
+            message: 'Có lỗi khi tải danh sách người phỏng vấn!',
+            confirmText: 'Đã hiểu',
+            tone: 'danger',
+          });
           this.isLoadingInterviewers = false;
           this.cdr.detectChanges();
         }
@@ -915,20 +1112,20 @@ Phòng Nhân sự`;
     today.setHours(0, 0, 0, 0);
 
     if (selectedDate < today) {
-      this.dateValidationError = '❌ Ngày phỏng vấn phải là ngày trong tương lai';
+      this.dateValidationError = ' Ngày phỏng vấn phải là ngày trong tương lai';
       return false;
     }
 
     // Kiểm tra ngày lễ Việt Nam
     if (this.isVietnamHoliday(selectedDate)) {
-      this.dateValidationError = '❌ Ngày này là ngày lễ Việt Nam, không thể lên lịch phỏng vấn';
+      this.dateValidationError = ' Ngày này là ngày lễ Việt Nam, không thể lên lịch phỏng vấn';
       return false;
     }
 
     // Kiểm tra weekend (thứ 7, chủ nhật)
     if (this.isWeekend(selectedDate)) {
       const dayName = selectedDate.getDay() === 0 ? 'Chủ nhật' : 'Thứ 7';
-      this.dateValidationError = `❌ ${dayName} không phải ngày lao động, vui lòng chọn ngày khác`;
+      this.dateValidationError = ` ${dayName} không phải ngày lao động, vui lòng chọn ngày khác`;
       return false;
     }
 
@@ -949,7 +1146,7 @@ Phòng Nhân sự`;
     const hours = parseInt(timeParts[0]);
 
     if (hours < this.BUSINESS_HOURS_START || hours >= this.BUSINESS_HOURS_END) {
-      this.timeValidationError = `❌ Thời gian phỏng vấn phải nằm trong giờ hành chính (${this.BUSINESS_HOURS_START}:00 - ${this.BUSINESS_HOURS_END}:00)`;
+      this.timeValidationError = ` Thời gian phỏng vấn phải nằm trong giờ hành chính (${this.BUSINESS_HOURS_START}:00 - ${this.BUSINESS_HOURS_END}:00)`;
       return false;
     }
 
@@ -970,7 +1167,7 @@ Phòng Nhân sự`;
     const location = this.interviewForm.location?.trim() || '';
     
     if (!location) {
-      this.locationValidationError = '❌ Vui lòng nhập link meeting';
+      this.locationValidationError = ' Vui lòng nhập link meeting';
       return false;
     }
 
@@ -980,7 +1177,7 @@ Phòng Nhân sự`;
       this.locationValidationError = '';
       return true;
     } catch (e) {
-      this.locationValidationError = '❌ Địa chỉ link meeting không hợp lệ (ví dụ: https://meet.google.com/xxxxx)';
+      this.locationValidationError = ' Địa chỉ link meeting không hợp lệ (ví dụ: https://meet.google.com/xxxxx)';
       return false;
     }
   }
@@ -998,7 +1195,7 @@ Phòng Nhân sự`;
     const location = this.interviewForm.location?.trim() || '';
     
     if (!location || location.length < this.MIN_LOCATION_LENGTH) {
-      this.locationValidationError = `❌ Vui lòng nhập địa điểm (tối thiểu ${this.MIN_LOCATION_LENGTH} ký tự)`;
+      this.locationValidationError = ` Vui lòng nhập địa điểm (tối thiểu ${this.MIN_LOCATION_LENGTH} ký tự)`;
       return false;
     }
 
@@ -1119,7 +1316,7 @@ Phòng Nhân sự`;
     ).subscribe({
       next: (response) => {
         console.log('Interview scheduled successfully:', response);
-        console.log(' Email with CC sent automatically by backend');
+        console.log(' Interview email queued for background sending');
 
         // Update trạng thái INTERVIEW trong UI
         const app = this.applications.find(a => a.applicationId === this.selectedApplication!.applicationId);
@@ -1127,7 +1324,7 @@ Phòng Nhân sự`;
           app.status = 'INTERVIEW';
         }
 
-        this.toast.success('Lịch phỏng vấn đã gửi', 'Đã lên lịch phỏng vấn và gửi email thành công!');
+        this.toast.success('Lên lịch thành công', 'Lịch đã được tạo. Email mời sẽ được gửi ứng viên.');
         this.closeInterviewModal();
         this.isSendingEmail = false;
         this.cdr.detectChanges();
@@ -1248,7 +1445,12 @@ Phòng Nhân sự`;
         },
         error: (error) => {
           console.error(' Error generating rejection email:', error);
-          alert('Có lỗi khi tạo email. Vui lòng thử lại!');
+          void this.popup.alert({
+            title: 'Lỗi tạo email',
+            message: 'Có lỗi khi tạo email. Vui lòng thử lại!',
+            confirmText: 'Đã hiểu',
+            tone: 'danger',
+          });
           this.isGeneratingRejectEmail = false;
           this.cdr.detectChanges();
         }
@@ -1465,7 +1667,12 @@ Phòng Nhân sự`;
     const filtered = this.filteredApplications();
 
     if (filtered.length === 0) {
-      alert('Không có dữ liệu để xuất!');
+      void this.popup.alert({
+        title: 'Không có dữ liệu',
+        message: 'Không có dữ liệu để xuất!',
+        confirmText: 'Đã hiểu',
+        tone: 'neutral',
+      });
       return;
     }
 
