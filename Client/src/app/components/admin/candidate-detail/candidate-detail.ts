@@ -7,6 +7,24 @@ import { ApplicationService, CandidateProfileDto } from '../../../services/appli
 import { ToastService } from '../../../services/toast.service';
 import { PopupService } from '../../../services/popup.service';
 
+interface CandidateRouteState {
+  applicationId: string;
+  candidateId: string;
+  status: string;
+  candidateName?: string;
+  email?: string;
+  phone?: string;
+  jobTitle?: string;
+  appliedAt?: string;
+  cvUrl?: string;
+  matchScore?: number | null;
+  aiExplanation?: string;
+}
+
+interface CandidateNavigationState {
+  candidate?: CandidateRouteState;
+}
+
 // HR chỉ được advance đến Pending_Offer qua pipeline.
 // Ứng viên phản hồi Offer sẽ thành OFFER_ACCEPTED; HR xác nhận cuối cùng mới thành HIRED.
 const PIPELINE_STAGES = [
@@ -37,14 +55,14 @@ export class CandidateDetail implements OnInit {
   isUpdatingStatus = signal(false);
   isDownloading = signal(false);
   isSendingEmail = signal(false);
-  routerDataSig = signal<any>(null);
+  routerDataSig = signal<CandidateRouteState | null>(null);
   showOfferModal = signal(false);
 
   pipelineStages = PIPELINE_STAGES;
 
   constructor() {
     const navigation = this.router.getCurrentNavigation();
-    const state = navigation?.extras.state as { candidate: any };
+    const state = navigation?.extras.state as CandidateNavigationState | undefined;
     const data = state?.candidate ?? {
       applicationId: '', candidateId: '',
       candidateName: 'Demo', email: '', phone: '',
@@ -69,7 +87,7 @@ export class CandidateDetail implements OnInit {
   get avatar() { return this.profile()?.avatar || null; }
   get linkedIn() { return this.profile()?.linkedIn || null; }
   get gitHub() { return this.profile()?.gitHub || null; }
-  get skills() { return this.profile()?.skills?.map(s => s.skillName) || []; }
+  get skills() { return this.profile()?.skills?.map((s: any) => s.skillName) || []; }
   get documents() { return this.profile()?.documents || []; }
   get currentStatus() { return this.rd?.status || 'PENDING'; }
   get currentStatusLabel() {
@@ -106,7 +124,8 @@ export class CandidateDetail implements OnInit {
         this.isLoadingProfile.set(false);
       },
       error: (err: any) => {
-        console.error(' Profile load error:', err);
+        const message = err?.error?.message || 'Không thể tải thông tin ứng viên.';
+        this.toast.error('Lỗi', message);
         this.isLoadingProfile.set(false);
       }
     });
@@ -123,7 +142,8 @@ export class CandidateDetail implements OnInit {
   }
 
   updateStatus(newStatus: string): void {
-    if (!this.rd?.applicationId) {
+    const rd = this.rd;
+    if (!rd?.applicationId) {
       this.toast.warning('Lỗi', 'Không tìm thấy mã hồ sơ!');
       return;
     }
@@ -134,16 +154,16 @@ export class CandidateDetail implements OnInit {
       return;
     }
     this.isUpdatingStatus.set(true);
-    this.appService.updateApplicationStatus(this.rd.applicationId, newStatus).subscribe({
+    this.appService.updateApplicationStatus(rd.applicationId, newStatus).subscribe({
       next: () => {
         const label = PIPELINE_STAGES.find(s => s.key === newStatus)?.label || newStatus;
         this.toast.success('Thành công', `Đã chuyển sang "${label}"`);
-        this.routerDataSig.update(d => ({ ...d, status: newStatus }));
+        this.routerDataSig.update((d: CandidateRouteState | null) => d ? ({ ...d, status: newStatus }) : d);
         this.isUpdatingStatus.set(false);
       },
       error: (err: any) => {
-        console.error(' Update status error:', err);
-        this.toast.error('Lỗi', 'Không thể cập nhật trạng thái.');
+        const message = err?.error?.message || 'Không thể cập nhật trạng thái.';
+        this.toast.error('Lỗi', message);
         this.isUpdatingStatus.set(false);
       }
     });
@@ -157,7 +177,7 @@ export class CandidateDetail implements OnInit {
     if (docType === 'CV' && this.rd?.applicationId) {
       this.appService.trackCvView(this.rd.applicationId).subscribe({
         next: () => console.log('CV view tracked from detail'),
-        error: (err: any) => console.error('CV view tracking error', err)
+        error: () => this.toast.warning('Thông tin', 'Không thể ghi nhận lượt xem CV, nhưng bạn vẫn có thể xem file.')
       });
     }
 
@@ -189,7 +209,7 @@ export class CandidateDetail implements OnInit {
 
     this.isDownloading.set(true);
     this.http.get(url, { responseType: 'blob' }).subscribe({
-      next: (blob) => {
+      next: (blob: Blob) => {
         // Nếu backend trả về JSON/HTML (lỗi auth) -> fallback mở tab mới
         if (blob.type.includes('application/json') || blob.type.includes('text/html')) {
           console.warn('Got non-binary response, fallback to window.open');
@@ -205,8 +225,8 @@ export class CandidateDetail implements OnInit {
         URL.revokeObjectURL(objectUrl);
         this.isDownloading.set(false);
       },
-      error: (err) => {
-        console.error(' Download error:', err);
+      error: (_err: unknown) => {
+        this.toast.warning('Thông tin', 'Không tải được file trực tiếp, đang mở file trong tab mới.');
         // Fallback: mở trực tiếp
         window.open(url, '_blank');
         this.isDownloading.set(false);
@@ -224,11 +244,16 @@ export class CandidateDetail implements OnInit {
       tone: 'danger',
     });
     if (!confirmed) return;
+    const rd = this.rd;
+    if (!rd?.applicationId) {
+      this.toast.warning('Lỗi', 'Không tìm thấy mã hồ sơ!');
+      return;
+    }
     this.isUpdatingStatus.set(true);
-    this.appService.updateApplicationStatus(this.rd.applicationId, 'REJECTED').subscribe({
+    this.appService.updateApplicationStatus(rd.applicationId, 'REJECTED').subscribe({
       next: () => {
         this.toast.success('Đã từ chối', `Hồ sơ của ${this.name} đã bị từ chối.`);
-        this.routerDataSig.update(d => ({ ...d, status: 'REJECTED' }));
+        this.routerDataSig.update((d: CandidateRouteState | null) => d ? ({ ...d, status: 'REJECTED' }) : d);
         this.isUpdatingStatus.set(false);
       },
       error: () => {
@@ -240,12 +265,7 @@ export class CandidateDetail implements OnInit {
 
   async sendEmail(): Promise<void> {
     if (!this.email) {
-      await this.popup.alert({
-        title: 'Thiếu email ứng viên',
-        message: 'Hồ sơ này chưa có email liên hệ để gửi thư.',
-        confirmText: 'Đã hiểu',
-        tone: 'danger',
-      });
+      this.toast.warning('Thiếu email ứng viên', 'Hồ sơ này chưa có email liên hệ để gửi thư.');
       return;
     }
 
@@ -284,15 +304,10 @@ export class CandidateDetail implements OnInit {
         this.isSendingEmail.set(false);
         this.toast.success('Đã gửi email', `Đã gửi email tới ${this.name}.`);
       },
-      error: async (err) => {
-        console.error(' Send email error:', err);
+      error: async (err: any) => {
         this.isSendingEmail.set(false);
-        await this.popup.alert({
-          title: 'Gửi email thất bại',
-          message: 'Có lỗi khi gửi email. Vui lòng thử lại.',
-          confirmText: 'Đã hiểu',
-          tone: 'danger',
-        });
+        const message = err?.error?.message || 'Có lỗi khi gửi email. Vui lòng thử lại.';
+        this.toast.error('Gửi email thất bại', message);
       }
     });
   }
@@ -302,10 +317,16 @@ export class CandidateDetail implements OnInit {
   onOfferSent(_payload: any): void {
     this.onOfferClosed();
     // Sau khi gửi offer, chuyển sang Offer_Sent
+    const rd = this.rd;
+    if (!rd?.applicationId) {
+      this.toast.warning('Lỗi', 'Không tìm thấy mã hồ sơ!');
+      this.isUpdatingStatus.set(false);
+      return;
+    }
     this.isUpdatingStatus.set(true);
-    this.appService.updateApplicationStatus(this.rd.applicationId, 'Offer_Sent').subscribe({
+    this.appService.updateApplicationStatus(rd.applicationId, 'Offer_Sent').subscribe({
       next: () => {
-        this.routerDataSig.update(d => ({ ...d, status: 'Offer_Sent' }));
+        this.routerDataSig.update((d: CandidateRouteState | null) => d ? ({ ...d, status: 'Offer_Sent' }) : d);
         this.isUpdatingStatus.set(false);
         this.toast.success('Thành công', 'Đã gửi Offer! Chờ ứng viên phản hồi.');
       },

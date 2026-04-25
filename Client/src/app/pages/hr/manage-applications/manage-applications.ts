@@ -209,9 +209,9 @@ export class ManageApplications implements OnInit, OnDestroy {
           });
         },
         error: (err) => {
-          console.error('Error loading AI candidates:', err);
           this.ngZone.run(() => {
             this.isLoadingRecommendations = false;
+            this.toast.warning('Cảnh báo', 'Không thể tải danh sách ứng viên được đề xuất.');
             this.cdr.detectChanges();
           });
         }
@@ -229,32 +229,17 @@ export class ManageApplications implements OnInit, OnDestroy {
 
   async inviteRecommendedCandidate(candidate: RecommendedCandidate): Promise<void> {
     if (!this.jobId) {
-      await this.popup.alert({
-        title: 'Thiếu thông tin Job',
-        message: 'Không xác định được vị trí tuyển dụng để gửi thư mời.',
-        confirmText: 'Đã hiểu',
-        tone: 'danger'
-      });
+      this.toast.warning('Cảnh báo', 'Không xác định được vị trí tuyển dụng để gửi thư mời.');
       return;
     }
 
     if (this.hasAppliedToCurrentJob(candidate)) {
-      await this.popup.alert({
-        title: 'Ứng viên đã nộp hồ sơ',
-        message: `${candidate.fullName} đã ứng tuyển vị trí này. Bạn có thể xử lý trong danh sách hồ sơ ứng tuyển.`,
-        confirmText: 'Đã hiểu',
-        tone: 'neutral'
-      });
+      this.toast.info('Thông tin', `${candidate.fullName} đã ứng tuyển vị trí này. Bạn có thể xử lý trong danh sách hồ sơ ứng tuyển.`);
       return;
     }
 
     if (!candidate.email) {
-      await this.popup.alert({
-        title: 'Thiếu email ứng viên',
-        message: 'Không thể gửi thư mời vì hồ sơ ứng viên chưa có email liên hệ.',
-        confirmText: 'Đã hiểu',
-        tone: 'danger'
-      });
+      this.toast.warning('Cảnh báo', 'Không thể gửi thư mời vì hồ sơ ứng viên chưa có email liên hệ.');
       return;
     }
 
@@ -389,9 +374,9 @@ export class ManageApplications implements OnInit, OnDestroy {
         this.cdr.detectChanges();
       },
       error: (error) => {
-        console.error('Lỗi khi tải danh sách hồ sơ:', error);
         this.isLoading = false;
         this.isEmpty = true;
+        this.toast.error('Lỗi', 'Không thể tải danh sách hồ sơ. Vui lòng tải lại trang.');
         this.cdr.detectChanges();
       }
     });
@@ -683,8 +668,8 @@ export class ManageApplications implements OnInit, OnDestroy {
 
     // 1. Gọi API tracking (không cần chờ kết quả để mở CV)
     this.applicationService.trackCvView(app.applicationId).subscribe({
-      next: () => console.log('CV view tracked'),
-      error: (err: any) => console.error('CV view tracking error', err)
+      next: () => {},
+      error: (err: any) => {}
     });
 
     // 2. Mở CV
@@ -840,13 +825,7 @@ Phòng Nhân sự`;
           this.cdr.detectChanges();
         },
         error: (error) => {
-          console.error(' Error generating AI opening:', error);
-          void this.popup.alert({
-            title: 'Lỗi tạo nội dung AI',
-            message: 'Có lỗi khi tạo nội dung AI. Vui lòng thử lại!',
-            confirmText: 'Đã hiểu',
-            tone: 'danger',
-          });
+          this.toast.error('Lỗi tạo nội dung', 'Không thể tạo nội dung AI. Vui lòng thử lại.');
           this.isGeneratingAI = false;
           this.cdr.detectChanges();
         }
@@ -938,13 +917,7 @@ Phòng Nhân sự`;
           this.cdr.detectChanges();
         },
         error: (error) => {
-          console.error(' Error loading interviewers:', error);
-          void this.popup.alert({
-            title: 'Lỗi tải danh sách',
-            message: 'Có lỗi khi tải danh sách người phỏng vấn!',
-            confirmText: 'Đã hiểu',
-            tone: 'danger',
-          });
+          this.toast.error('Lỗi tải danh sách', 'Không thể tải danh sách người phỏng vấn. Vui lòng thử lại.');
           this.isLoadingInterviewers = false;
           this.cdr.detectChanges();
         }
@@ -1445,12 +1418,7 @@ Phòng Nhân sự`;
         },
         error: (error) => {
           console.error(' Error generating rejection email:', error);
-          void this.popup.alert({
-            title: 'Lỗi tạo email',
-            message: 'Có lỗi khi tạo email. Vui lòng thử lại!',
-            confirmText: 'Đã hiểu',
-            tone: 'danger',
-          });
+          this.toast.error('Lỗi tạo email', 'Có lỗi khi tạo email. Vui lòng thử lại!');
           this.isGeneratingRejectEmail = false;
           this.cdr.detectChanges();
         }
@@ -1667,12 +1635,7 @@ Phòng Nhân sự`;
     const filtered = this.filteredApplications();
 
     if (filtered.length === 0) {
-      void this.popup.alert({
-        title: 'Không có dữ liệu',
-        message: 'Không có dữ liệu để xuất!',
-        confirmText: 'Đã hiểu',
-        tone: 'neutral',
-      });
+      this.toast.info('Thông tin', 'Không có dữ liệu để xuất!');
       return;
     }
 

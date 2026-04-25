@@ -89,8 +89,8 @@ export class EmployeeManagement implements OnInit {
         this.cdr.detectChanges();
       },
       error: (error) => {
-        console.error(' Error loading employees:', error);
         this.errorMessage.set('Không thể tải danh sách nhân viên. Vui lòng thử lại.');
+        this.toast.error('Lỗi', error?.error?.message || 'Không thể tải danh sách nhân viên.');
         this.isLoading.set(false);
         this.cdr.detectChanges();
       }
@@ -303,7 +303,6 @@ export class EmployeeManagement implements OnInit {
         this.cdr.detectChanges();
       },
       error: (error) => {
-        console.error(' Error updating employee:', error);
         const errorMessage = error?.error?.message || 'Không thể cập nhật nhân viên. Vui lòng thử lại.';
         this.errorMessage.set(errorMessage);
         this.toast.error('Cập nhật thất bại', errorMessage);
@@ -345,7 +344,6 @@ export class EmployeeManagement implements OnInit {
         this.cdr.detectChanges();
       },
       error: (error) => {
-        console.error(' Error reactivating employee:', error);
         this.errorMessage.set('Không thể kích hoạt nhân viên. Vui lòng thử lại.');
         this.toast.error('Lỗi', 'Không thể kích hoạt nhân viên. Vui lòng thử lại.');
         this.isLoading.set(false);

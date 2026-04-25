@@ -50,6 +50,8 @@ public partial class UTC_DATNContext : DbContext
 
     public virtual DbSet<ChatSession> ChatSessions { get; set; }
 
+    public virtual DbSet<ChatbotFaq> ChatbotFaqs { get; set; }
+
     public virtual DbSet<EmailQueue> EmailQueues { get; set; }
 
     public virtual DbSet<EmailSendLog> EmailSendLogs { get; set; }
@@ -150,6 +152,30 @@ public partial class UTC_DATNContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("FK_Notifications_Users");
+        });
+
+        modelBuilder.Entity<ChatbotFaq>(entity =>
+        {
+            entity.HasKey(e => e.FaqId);
+
+            entity.ToTable("ChatbotFaqs");
+
+            entity.HasIndex(e => new { e.IsActive, e.Priority }, "IX_ChatbotFaqs_IsActive_Priority");
+
+            entity.Property(e => e.FaqId).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.Question)
+                .IsRequired()
+                .HasMaxLength(500);
+            entity.Property(e => e.Answer).IsRequired();
+            entity.Property(e => e.Category)
+                .IsRequired()
+                .HasMaxLength(100)
+                .HasDefaultValue("General");
+            entity.Property(e => e.Keywords).HasMaxLength(1000);
+            entity.Property(e => e.Priority).HasDefaultValue(0);
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime2");
         });
         modelBuilder.Entity<AntiCheatEvent>(entity =>
         {

@@ -5,9 +5,12 @@ using System.Threading.Tasks;
 using System.Diagnostics;
 using UTC_DATN.Models;
 using UTC_DATN.Data;
+using UTC_DATN.Entities;
 using Microsoft.EntityFrameworkCore;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace UTC_DATN.Controllers
 {
@@ -35,6 +38,134 @@ namespace UTC_DATN.Controllers
             _cache = cache;
         }
 
+        [HttpGet("admin/faqs")]
+        [Authorize(Roles = "ADMIN,HR")]
+        public async Task<IActionResult> GetFaqs([FromQuery] string? search = null, [FromQuery] bool? isActive = null)
+        {
+            var query = _context.ChatbotFaqs.AsNoTracking().AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim().ToLower();
+                query = query.Where(x => x.Question.ToLower().Contains(keyword)
+                    || x.Answer.ToLower().Contains(keyword)
+                    || (x.Keywords != null && x.Keywords.ToLower().Contains(keyword))
+                    || x.Category.ToLower().Contains(keyword));
+            }
+
+            if (isActive.HasValue)
+            {
+                query = query.Where(x => x.IsActive == isActive.Value);
+            }
+
+            var items = await query
+                .OrderByDescending(x => x.IsActive)
+                .ThenByDescending(x => x.Priority)
+                .ThenBy(x => x.Question)
+                .Select(x => new ChatbotFaqAdminDto
+                {
+                    FaqId = x.FaqId,
+                    Question = x.Question,
+                    Answer = x.Answer,
+                    Category = x.Category,
+                    Keywords = x.Keywords,
+                    Priority = x.Priority,
+                    IsActive = x.IsActive,
+                    CreatedAt = x.CreatedAt,
+                    UpdatedAt = x.UpdatedAt
+                })
+                .ToListAsync();
+
+            return Ok(items);
+        }
+
+        [HttpPost("admin/faqs")]
+        [Authorize(Roles = "ADMIN,HR")]
+        public async Task<IActionResult> CreateFaq([FromBody] UpsertChatbotFaqDto dto)
+        {
+            if (string.IsNullOrWhiteSpace(dto.Question) || string.IsNullOrWhiteSpace(dto.Answer))
+            {
+                return BadRequest(new { message = "Question và Answer là bắt buộc." });
+            }
+
+            var faq = new ChatbotFaq
+            {
+                FaqId = Guid.NewGuid(),
+                Question = dto.Question.Trim(),
+                Answer = dto.Answer.Trim(),
+                Category = string.IsNullOrWhiteSpace(dto.Category) ? "General" : dto.Category.Trim(),
+                Keywords = NormalizeKeywords(dto.Keywords),
+                Priority = dto.Priority,
+                IsActive = dto.IsActive,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = GetCurrentUserIdOrNull()
+            };
+
+            _context.ChatbotFaqs.Add(faq);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Tạo FAQ thành công.", faqId = faq.FaqId });
+        }
+
+        [HttpPut("admin/faqs/{faqId:guid}")]
+        [Authorize(Roles = "ADMIN,HR")]
+        public async Task<IActionResult> UpdateFaq(Guid faqId, [FromBody] UpsertChatbotFaqDto dto)
+        {
+            if (string.IsNullOrWhiteSpace(dto.Question) || string.IsNullOrWhiteSpace(dto.Answer))
+            {
+                return BadRequest(new { message = "Question và Answer là bắt buộc." });
+            }
+
+            var faq = await _context.ChatbotFaqs.FirstOrDefaultAsync(x => x.FaqId == faqId);
+            if (faq == null)
+            {
+                return NotFound(new { message = "Không tìm thấy FAQ." });
+            }
+
+            faq.Question = dto.Question.Trim();
+            faq.Answer = dto.Answer.Trim();
+            faq.Category = string.IsNullOrWhiteSpace(dto.Category) ? "General" : dto.Category.Trim();
+            faq.Keywords = NormalizeKeywords(dto.Keywords);
+            faq.Priority = dto.Priority;
+            faq.IsActive = dto.IsActive;
+            faq.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Cập nhật FAQ thành công." });
+        }
+
+        [HttpPatch("admin/faqs/{faqId:guid}/toggle")]
+        [Authorize(Roles = "ADMIN,HR")]
+        public async Task<IActionResult> ToggleFaq(Guid faqId)
+        {
+            var faq = await _context.ChatbotFaqs.FirstOrDefaultAsync(x => x.FaqId == faqId);
+            if (faq == null)
+            {
+                return NotFound(new { message = "Không tìm thấy FAQ." });
+            }
+
+            faq.IsActive = !faq.IsActive;
+            faq.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = faq.IsActive ? "Đã bật FAQ." : "Đã tắt FAQ.", isActive = faq.IsActive });
+        }
+
+        [HttpDelete("admin/faqs/{faqId:guid}")]
+        [Authorize(Roles = "ADMIN,HR")]
+        public async Task<IActionResult> DeleteFaq(Guid faqId)
+        {
+            var faq = await _context.ChatbotFaqs.FirstOrDefaultAsync(x => x.FaqId == faqId);
+            if (faq == null)
+            {
+                return NotFound(new { message = "Không tìm thấy FAQ." });
+            }
+
+            _context.ChatbotFaqs.Remove(faq);
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Đã xóa FAQ." });
+        }
+
         [HttpPost("ask")]
         public async Task Ask([FromBody] ChatRequestDto request)
         {
@@ -50,6 +181,15 @@ namespace UTC_DATN.Controllers
             {
                 // BẮT BUỘC: Đặt Timeout tối đa lên 120s dể phòng trường hợp AI sinh text lên tới 5 trang giấy
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(120));
+
+                // Lớp trả lời nhanh: ưu tiên FAQ trước khi gọi LLM để giảm độ "tù" và giảm token.
+                var faqAnswer = await TryGetFaqAnswerAsync(request.Message, cts.Token);
+                if (!string.IsNullOrWhiteSpace(faqAnswer))
+                {
+                    await WriteStreamEvent(Response, faqAnswer);
+                    return;
+                }
+
                 var sw = Stopwatch.StartNew();
                 var httpClient = _httpClientFactory.CreateClient("GeminiClient");
                 
@@ -74,8 +214,8 @@ namespace UTC_DATN.Controllers
                 if (isSmallTalk)
                 {
                     Response.ContentType = "text/event-stream";
-                    Response.Headers.Add("Cache-Control", "no-cache");
-                    Response.Headers.Add("Connection", "keep-alive");
+                    Response.Headers["Cache-Control"] = "no-cache";
+                    Response.Headers["Connection"] = "keep-alive";
 
                     var greetingMsg = "Chào bạn! Tôi là V9 Assistant - AI tư vấn tuyển dụng độc quyền của V9 TECH. Tôi có thể giúp bạn tìm kiếm thông tin Việc làm, Kỹ năng IT, hoặc tư vấn kinh nghiệm phỏng vấn. Bạn đang quan tâm đến vị trí nào?";
                     var words = greetingMsg.Split(' ');
@@ -170,7 +310,7 @@ namespace UTC_DATN.Controllers
 
                 // 3. Khởi tạo SSE HTTP Headers trước khi gọi Google
                 Response.ContentType = "text/event-stream";
-                Response.Headers.Add("Cache-Control", "no-cache");
+                Response.Headers["Cache-Control"] = "no-cache";
                 await Response.Body.FlushAsync(cts.Token);
 
                 // 4. Hàm thực thi HTTP Call hỗ trợ Streaming
@@ -280,13 +420,142 @@ namespace UTC_DATN.Controllers
             if (!response.HasStarted)
             {
                 response.ContentType = "text/event-stream";
-                response.Headers.Add("Cache-Control", "no-cache");
-                response.Headers.Add("Connection", "keep-alive");
+                response.Headers["Cache-Control"] = "no-cache";
+                response.Headers["Connection"] = "keep-alive";
             }
             var chunkObj = new { text = message };
             await response.WriteAsync($"data: {JsonSerializer.Serialize(chunkObj)}\n\n");
             await response.WriteAsync("data: [DONE]\n\n");
             await response.Body.FlushAsync();
         }
+
+        private async Task<string?> TryGetFaqAnswerAsync(string message, CancellationToken cancellationToken)
+        {
+            var normalized = message.Trim().ToLower();
+            if (string.IsNullOrWhiteSpace(normalized))
+            {
+                return null;
+            }
+
+            var normalizedNoDiacritics = RemoveDiacritics(normalized);
+
+            var candidates = await _context.ChatbotFaqs
+                .AsNoTracking()
+                .Where(x => x.IsActive)
+                .OrderByDescending(x => x.Priority)
+                .ThenBy(x => x.Question)
+                .Take(100)
+                .ToListAsync(cancellationToken);
+
+            foreach (var faq in candidates)
+            {
+                var question = faq.Question?.Trim().ToLower() ?? string.Empty;
+                var questionNoDiacritics = RemoveDiacritics(question);
+
+                if (!string.IsNullOrWhiteSpace(question)
+                    && (normalized.Contains(question) || question.Contains(normalized) ||
+                        normalizedNoDiacritics.Contains(questionNoDiacritics) || questionNoDiacritics.Contains(normalizedNoDiacritics)))
+                {
+                    return faq.Answer;
+                }
+
+                if (string.IsNullOrWhiteSpace(faq.Keywords))
+                {
+                    continue;
+                }
+
+                var keywords = faq.Keywords
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .Select(x => x.ToLower())
+                    .Where(x => x.Length >= 2);
+
+                if (keywords.Any(k => 
+                {
+                    var kNoDiacritics = RemoveDiacritics(k);
+                    return normalized.Contains(k) || normalizedNoDiacritics.Contains(kNoDiacritics);
+                }))
+                {
+                    return faq.Answer;
+                }
+            }
+
+            return null;
+        }
+
+        private static string RemoveDiacritics(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return text;
+            
+            var normalizedString = text.Normalize(NormalizationForm.FormD);
+            var stringBuilder = new StringBuilder(capacity: normalizedString.Length);
+
+            for (int i = 0; i < normalizedString.Length; i++)
+            {
+                char c = normalizedString[i];
+                var unicodeCategory = System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c);
+                if (unicodeCategory != System.Globalization.UnicodeCategory.NonSpacingMark)
+                {
+                    stringBuilder.Append(c);
+                }
+            }
+
+            return stringBuilder
+                .ToString()
+                .Normalize(NormalizationForm.FormC)
+                .Replace('đ', 'd').Replace('Đ', 'D'); // Handle special Vietnamese character
+        }
+
+        private static string NormalizeKeywords(string? rawKeywords)
+        {
+            if (string.IsNullOrWhiteSpace(rawKeywords))
+            {
+                return string.Empty;
+            }
+
+            var normalized = rawKeywords
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(x => x.Trim())
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct(StringComparer.OrdinalIgnoreCase);
+
+            return string.Join(",", normalized);
+        }
+
+        private Guid? GetCurrentUserIdOrNull()
+        {
+            var claim = User?.Claims?.FirstOrDefault(c => c.Type == "sub"
+                || c.Type == ClaimTypes.NameIdentifier
+                || c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier");
+
+            if (claim == null)
+            {
+                return null;
+            }
+
+            return Guid.TryParse(claim.Value, out var userId) ? userId : null;
+        }
+    }
+
+    public class UpsertChatbotFaqDto
+    {
+        public string Question { get; set; } = string.Empty;
+        public string Answer { get; set; } = string.Empty;
+        public string Category { get; set; } = "General";
+        public string? Keywords { get; set; }
+        public int Priority { get; set; } = 0;
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class ChatbotFaqAdminDto
+    {
+        public Guid FaqId { get; set; }
+        public string Question { get; set; } = string.Empty;
+        public string Answer { get; set; } = string.Empty;
+        public string Category { get; set; } = string.Empty;
+        public string? Keywords { get; set; }
+        public int Priority { get; set; }
+        public bool IsActive { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
     }
 }

@@ -84,7 +84,6 @@ export class SkillManagementComponent implements OnInit {
                     });
                 },
                 error: (err) => {
-                    console.error('Skills API error:', err.status, err.message);
                     this.ngZone.run(() => {
                         this.skills = [];
                         const errorMsg = err.error?.message || 'Không thể tải danh sách kỹ năng';

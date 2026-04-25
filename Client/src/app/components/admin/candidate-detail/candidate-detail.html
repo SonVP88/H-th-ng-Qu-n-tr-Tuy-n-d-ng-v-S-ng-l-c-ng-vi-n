@@ -57,7 +57,7 @@
               <span *ngIf="rd?.matchScore != null"
                 class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800">
                 <span class="material-symbols-outlined text-[14px]">psychology</span>
-                AI: {{ rd.matchScore }}%
+                AI: {{ rd?.matchScore }}%
               </span>
             </div>
 
@@ -195,7 +195,7 @@
               </div>
               <div>
                 <span class="text-xs text-gray-400 font-medium uppercase block">CV ứng tuyển</span>
-                <button (click)="previewFileWithAuth(rd.cvUrl)"
+                <button (click)="previewFileWithAuth(rd?.cvUrl || '')"
                   class="text-sm font-medium text-primary hover:underline flex items-center gap-1">
                   Xem CV <span class="material-symbols-outlined text-[13px]">open_in_new</span>
                 </button>
@@ -234,9 +234,9 @@
           class="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 rounded-xl p-5">
           <h3 class="text-base font-bold mb-2 flex items-center gap-2 text-indigo-700">
             <span class="material-symbols-outlined text-[20px]">psychology</span>
-            Đánh giá AI ({{ rd.matchScore }}%)
+            Đánh giá AI ({{ rd?.matchScore }}%)
           </h3>
-          <p class="text-sm text-indigo-700 leading-relaxed">{{ rd.aiExplanation }}</p>
+          <p class="text-sm text-indigo-700 leading-relaxed">{{ rd?.aiExplanation }}</p>
         </div>
 
         <!-- File đính kèm -->

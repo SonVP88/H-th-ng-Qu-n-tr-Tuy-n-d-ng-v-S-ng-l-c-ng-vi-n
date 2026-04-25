@@ -113,7 +113,9 @@ export class CandidateProfile implements OnInit {
             next: (skills) => {
                 this.allSkills = skills;
             },
-            error: (err) => console.error('Failed to load skills list', err)
+            error: () => {
+                this.toast.warning('Cảnh báo', 'Không thể tải danh sách kỹ năng. Bạn vẫn có thể nhập kỹ năng thủ công.');
+            }
         });
     }
 
@@ -202,10 +204,10 @@ export class CandidateProfile implements OnInit {
                 this.isLoading = false;
                 this.updateProfileState(data);
             },
-            error: (err) => {
-                console.error('Failed to load profile', err);
+            error: () => {
                 this.isLoading = false;
                 this.loadError = 'Không thể tải thông tin hồ sơ.';
+                this.toast.error('Lỗi', 'Không thể tải thông tin hồ sơ. Vui lòng thử lại.');
                 this.cdr.detectChanges();
             }
         });
@@ -295,7 +297,10 @@ export class CandidateProfile implements OnInit {
 
         this.candidateService.deleteCV(cvId).subscribe({
             next: () => this.handleRefresh('Đã xóa CV thành công!'),
-            error: (err) => console.error('Failed to delete CV', err)
+            error: (err) => {
+                const errorMessage = err.error?.message || 'Không thể xóa CV. Vui lòng thử lại.';
+                this.toast.error('Lỗi', errorMessage);
+            }
         });
     }
 

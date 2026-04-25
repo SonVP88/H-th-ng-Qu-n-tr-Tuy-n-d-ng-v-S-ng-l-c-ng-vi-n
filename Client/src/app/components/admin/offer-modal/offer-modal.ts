@@ -105,7 +105,6 @@ export class OfferModalComponent {
             },
             error: (error) => {
                 this.isSending = false;
-                console.error(' Error sending offer:', error);
 
                 // Hiển thị thông báo lỗi
                 const errorMsg = error.error?.message || 'Có lỗi xảy ra khi gửi email Offer';

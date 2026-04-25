@@ -185,14 +185,8 @@ export class Reports implements OnInit {
         saveAs(blob, `Bao_Cao_Tuyen_Dung_${this.selectedYear}.xlsx`);
       },
       error: (err) => {
-        console.error('Lỗi xuất Excel:', err);
-        this.toast.error('Xuất Excel thất bại', 'Không thể xuất Excel. Vui lòng thử lại sau.');
-        void this.popup.alert({
-          title: 'Không thể xuất Excel',
-          message: 'Hệ thống chưa thể xuất file báo cáo lúc này. Vui lòng thử lại sau ít phút.',
-          confirmText: 'Đã hiểu',
-          tone: 'danger',
-        });
+        const message = err?.error?.message || 'Không thể xuất Excel. Vui lòng thử lại sau.';
+        this.toast.error('Xuất Excel thất bại', message);
       }
     });
   }
@@ -213,7 +207,7 @@ export class Reports implements OnInit {
         setTimeout(() => this.cdr.detectChanges(), 0);
       },
       error: (err) => {
-        console.error('Error loading summary:', err);
+        this.toast.error('Lỗi tải báo cáo', err?.error?.message || 'Không thể tải phần tổng quan báo cáo.');
         this.isLoading = false;
         setTimeout(() => this.cdr.detectChanges(), 0);
       }
@@ -227,7 +221,7 @@ export class Reports implements OnInit {
         setTimeout(() => this.cdr.detectChanges(), 0);
       },
       error: (err) => {
-        console.error('Error loading charts:', err);
+        this.toast.error('Lỗi tải biểu đồ', err?.error?.message || 'Không thể tải dữ liệu biểu đồ.');
         this.isLoading = false;
         setTimeout(() => this.cdr.detectChanges(), 0);
       }
@@ -252,7 +246,7 @@ export class Reports implements OnInit {
         this.trendChartData.datasets[0].data = data.trendData.data;
       }
     } catch (error) {
-      console.error('Error updating charts:', error);
+      this.toast.warning('Thông tin', 'Dữ liệu biểu đồ có vấn đề định dạng, nhưng trang vẫn tải được.');
     }
   }
 }

@@ -60,7 +60,6 @@ export class CandidateManagementComponent implements OnInit {
           this.cdr.detectChanges();
         },
         error: (err) => {
-          console.error(err);
           this.toastService.error('Lỗi', 'Không thể tải danh sách ứng viên');
           this.isLoading = false;
           this.cdr.detectChanges();
