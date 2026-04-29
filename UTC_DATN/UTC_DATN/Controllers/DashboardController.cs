@@ -535,7 +535,7 @@ public class DashboardController : ControllerBase
     /// <summary>
     /// Helper: xác định icon cho SLA alert
     /// </summary>
-    private string GetSlaAlertIcon(string notificationType)
+    private static string GetSlaAlertIcon(string notificationType)
     {
         return notificationType switch
         {
@@ -549,7 +549,7 @@ public class DashboardController : ControllerBase
     /// <summary>
     /// Helper: xác định màu cho SLA alert
     /// </summary>
-    private string GetSlaAlertColor(string notificationType)
+    private static string GetSlaAlertColor(string notificationType)
     {
         return notificationType switch
         {

@@ -154,26 +154,27 @@ public class AiMatchingService : IAiMatchingService
 **MÔ TẢ CÔNG VIỆC:**
 {jobDescription}
 
-Hãy đọc kỹ file PDF CV đính kèm. Phân tích và đánh giá CV theo các tiêu chí sau:
-1. Kỹ năng kỹ thuật phù hợp
-2. Kinh nghiệm làm việc liên quan
-3. Trình độ học vấn
-4. Các kỹ năng mềm
+Hãy đọc kỹ file PDF CV đính kèm. Phân tích và đánh giá CV theo 4 tiêu chí:
+1. Kỹ năng kỹ thuật (technicalSkills): mức độ khớp kỹ năng kỹ thuật
+2. Kinh nghiệm (experience): số năm và mức độ liên quan của kinh nghiệm
+3. Học vấn (education): trình độ và ngành học phù hợp
+4. Kỹ năng mềm (softSkills): giao tiếp, teamwork, lãnh đạo, ngoại ngữ
 
-Trả về kết quả dưới dạng JSON với cấu trúc sau (KHÔNG thêm markdown, chỉ trả về JSON thuần):
+Trả về kết quả dưới dạng JSON (KHÔNG thêm markdown, chỉ trả về JSON thuần):
 {{
-  ""score"": <số từ 0-100>,
-  ""explanation"": ""<giải thích ngắn gọn về điểm số, không quá 3-4 câu>"",
+  ""score"": <điểm tổng 0-100, tính trung bình có trọng số>,
+  ""breakdown"": {{
+    ""technicalSkills"": <0-100>,
+    ""experience"": <0-100>,
+    ""education"": <0-100>,
+    ""softSkills"": <0-100>
+  }},
+  ""explanation"": ""<giải thích ngắn gọn 2-3 câu>"",
   ""matchedSkills"": [""<kỹ năng 1>"", ""<kỹ năng 2>"", ...],
   ""missingSkills"": [""<kỹ năng thiếu 1>"", ""<kỹ năng thiếu 2>"", ...]
 }}
 
-Lưu ý:
-- Score phải là số nguyên từ 0-100
-- Explanation phải ngắn gọn, súc tích
-- MatchedSkills: Các kỹ năng mà ứng viên có và job yêu cầu
-- MissingSkills: Các kỹ năng quan trọng mà job yêu cầu nhưng ứng viên chưa có
-- CHỈ TRẢ VỀ CHUỖI JSON, KHÔNG THÊM BẤT KỲ VĂN BẢN NÀO KHÁC BÊN NGOÀI.";
+Lưu ý: Score phải là số nguyên 0-100. CHỈ TRẢ VỀ JSON THUẦN.";
     }
 
     /// <summary>
@@ -223,23 +224,27 @@ Lưu ý:
                 MissingSkills = new List<string>()
             };
 
+            // Parse breakdown (Explainable AI)
+            if (resultRoot.TryGetProperty("breakdown", out var bd))
+            {
+                result.Breakdown = new UTC_DATN.DTOs.Ai.AiScoreBreakdown
+                {
+                    TechnicalSkills = bd.TryGetProperty("technicalSkills", out var ts) ? ts.GetInt32() : 0,
+                    Experience      = bd.TryGetProperty("experience",      out var ex) ? ex.GetInt32() : 0,
+                    Education       = bd.TryGetProperty("education",       out var ed) ? ed.GetInt32() : 0,
+                    SoftSkills      = bd.TryGetProperty("softSkills",      out var ss) ? ss.GetInt32() : 0,
+                };
+            }
+
             // Parse matched skills
             if (resultRoot.TryGetProperty("matchedSkills", out var matchedSkills))
-            {
                 foreach (var skill in matchedSkills.EnumerateArray())
-                {
                     result.MatchedSkills.Add(skill.GetString() ?? "");
-                }
-            }
 
             // Parse missing skills
             if (resultRoot.TryGetProperty("missingSkills", out var missingSkills))
-            {
                 foreach (var skill in missingSkills.EnumerateArray())
-                {
                     result.MissingSkills.Add(skill.GetString() ?? "");
-                }
-            }
 
             // Validate score range
             if (result.Score < 0) result.Score = 0;

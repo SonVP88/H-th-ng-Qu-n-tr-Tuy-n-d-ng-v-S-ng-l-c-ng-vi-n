@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
+using UTC_DATN.Data;
 using UTC_DATN.DTOs.Application;
 using UTC_DATN.DTOs.Interview;
 using UTC_DATN.Services.Interfaces;
@@ -13,15 +15,18 @@ public class ApplicationController : ControllerBase
     private readonly IApplicationService _applicationService;
     private readonly IInterviewService _interviewService;
     private readonly ILogger<ApplicationController> _logger;
+    private readonly UTC_DATNContext _context;
 
     public ApplicationController(
         IApplicationService applicationService,
         IInterviewService interviewService,
-        ILogger<ApplicationController> logger)
+        ILogger<ApplicationController> logger,
+        UTC_DATNContext context)
     {
         _applicationService = applicationService;
         _interviewService = interviewService;
         _logger = logger;
+        _context = context;
     }
 
     /// <summary>
@@ -397,22 +402,70 @@ public class ApplicationController : ControllerBase
         {
             var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var viewerId))
-            {
                 return Unauthorized(new { success = false, message = "Vui lòng đăng nhập." });
-            }
 
             var result = await _applicationService.TrackViewAsync(id, viewerId);
-
             if (result)
-            {
                 return Ok(new { success = true, message = "Đã ghi nhận lượt xem CV" });
-            }
             return NotFound(new { success = false, message = "Không tìm thấy hồ sơ" });
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Lỗi khi ghi nhận lượt xem hồ sơ ID: {Id}", id);
             return StatusCode(500, new { success = false, message = "Có lỗi xảy ra" });
+        }
+    }
+
+    /// <summary>
+    /// Lấy điểm AI và breakdown (Explainable AI) của một Application
+    /// </summary>
+    [HttpGet("{id}/ai-score")]
+    [Authorize(Roles = "HR, ADMIN")]
+    public async Task<IActionResult> GetAiScore(Guid id)
+    {
+        try
+        {
+            var score = await _context.ApplicationAiScores
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.ApplicationId == id);
+
+            if (score == null)
+                return NotFound(new { success = false, message = "Chưa có dữ liệu AI scoring cho hồ sơ này." });
+
+            // Deserialize BreakdownJson
+            object? breakdown = null;
+            if (!string.IsNullOrEmpty(score.BreakdownJson))
+            {
+                try { breakdown = System.Text.Json.JsonSerializer.Deserialize<object>(score.BreakdownJson); }
+                catch { /* ignore malformed json */ }
+            }
+
+            // Deserialize MatchedSkillsJson
+            object? skillsInfo = null;
+            if (!string.IsNullOrEmpty(score.MatchedSkillsJson))
+            {
+                try { skillsInfo = System.Text.Json.JsonSerializer.Deserialize<object>(score.MatchedSkillsJson); }
+                catch { /* ignore */ }
+            }
+
+            return Ok(new
+            {
+                success = true,
+                data = new
+                {
+                    applicationId  = id,
+                    matchingScore  = score.MatchingScore,
+                    breakdown,
+                    skillsInfo,
+                    model          = score.Model,
+                    createdAt      = score.CreatedAt
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi lấy AI score cho ApplicationId: {Id}", id);
+            return StatusCode(500, new { success = false, message = "Có lỗi xảy ra." });
         }
     }
 }

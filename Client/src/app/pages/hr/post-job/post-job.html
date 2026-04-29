@@ -159,6 +159,38 @@
           <span *ngIf="jobForm.get('deadline')?.errors?.['futureDate']">Hạn nộp hồ sơ phải từ ngày mai trở đi</span>
         </div>
       </div>
+      <!-- ✨ AI JD Generator Card -->
+      <div class="col-span-1 md:col-span-2 rounded-xl border border-dashed border-blue-300 dark:border-blue-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 p-5 space-y-3">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl">✨</span>
+          <div>
+            <p class="text-sm font-semibold text-blue-700 dark:text-blue-300">AI Gợi ý nội dung JD</p>
+            <p class="text-xs text-blue-500 dark:text-blue-400">Nhập yêu cầu chính → AI tự điền Mô tả, Yêu cầu, Quyền lợi trong vài giây</p>
+          </div>
+        </div>
+        <div class="flex gap-3 items-end">
+          <div class="flex-1 space-y-1">
+            <label class="text-xs font-medium text-blue-600 dark:text-blue-300">Yêu cầu chính (tuỳ chọn)</label>
+            <input
+              [(ngModel)]="keyRequirements"
+              [ngModelOptions]="{standalone: true}"
+              class="w-full rounded-lg border border-blue-200 dark:border-blue-700 bg-white dark:bg-gray-800 px-4 py-2.5 text-sm text-gray-800 dark:text-white placeholder:text-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-400 focus:outline-none transition-all"
+              placeholder="VD: React 3 năm, Node.js, SQL, Tiếng Anh giao tiếp..."
+              type="text" />
+          </div>
+          <button
+            type="button"
+            (click)="onAiGenerateJd()"
+            [disabled]="isGeneratingJd"
+            class="flex items-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-all disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap">
+            <span *ngIf="!isGeneratingJd" class="material-symbols-outlined text-[18px]">auto_awesome</span>
+            <span *ngIf="isGeneratingJd" class="material-symbols-outlined text-[18px] animate-spin">progress_activity</span>
+            {{ isGeneratingJd ? 'Đang sinh...' : 'Gợi ý AI' }}
+          </button>
+        </div>
+      </div>
+      <!-- End AI JD Generator Card -->
+
       <div class="col-span-1 md:col-span-2 space-y-2">
         <label class="text-sm font-medium text-[#0d121b] dark:text-gray-200" for="description">Mô Tả Công Việc
           <span class="text-red-500">*</span></label>

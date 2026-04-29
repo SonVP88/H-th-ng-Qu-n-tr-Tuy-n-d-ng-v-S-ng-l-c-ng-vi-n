@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using System.Text;
+using System.Text.Json;
 using UTC_DATN.Data;
 using UTC_DATN.DTOs.Job;
 using UTC_DATN.Services.Interfaces;
@@ -16,12 +18,21 @@ public class JobsController : ControllerBase
     private readonly IJobService _jobService;
     private readonly UTC_DATNContext _context;
     private readonly ILogger<JobsController> _logger;
+    private readonly IConfiguration _configuration;
+    private readonly IHttpClientFactory _httpClientFactory;
 
-    public JobsController(IJobService jobService, UTC_DATNContext context, ILogger<JobsController> logger)
+    public JobsController(
+        IJobService jobService,
+        UTC_DATNContext context,
+        ILogger<JobsController> logger,
+        IConfiguration configuration,
+        IHttpClientFactory httpClientFactory)
     {
         _jobService = jobService;
         _context = context;
         _logger = logger;
+        _configuration = configuration;
+        _httpClientFactory = httpClientFactory;
     }
 
     /// <summary>
@@ -273,4 +284,115 @@ public class JobsController : ControllerBase
             return BadRequest(new { message = $"Lỗi: {ex.Message}" });
         }
     }
+
+    /// <summary>
+    /// AI sinh nội dung Job Description (description, requirements, benefits)
+    /// dựa trên tiêu đề, cấp độ, yêu cầu chính và mức lương
+    /// </summary>
+    [HttpPost("ai-generate-jd")]
+    [Authorize(Roles = "ADMIN,HR")]
+    public async Task<IActionResult> AiGenerateJd([FromBody] AiGenerateJdRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Title))
+            return BadRequest(new { message = "Tiêu đề vị trí là bắt buộc." });
+
+        var apiKey = _configuration["GeminiAI:ApiKey"];
+        if (string.IsNullOrEmpty(apiKey))
+            return StatusCode(503, new { message = "Chưa cấu hình Gemini API Key." });
+
+        _logger.LogInformation("[AI JD] Generating JD for: {Title} / {Level}", request.Title, request.Level);
+
+        var salaryText = (request.SalaryMin.HasValue || request.SalaryMax.HasValue)
+            ? $"{request.SalaryMin?.ToString("N0") ?? "?"} – {request.SalaryMax?.ToString("N0") ?? "?"} {request.Currency ?? "VNĐ"}/tháng"
+            : "Thỏa thuận";
+
+        var prompt = $@"Bạn là chuyên gia tuyển dụng IT chuyên nghiệp tại Việt Nam.
+Hãy viết Job Description cho vị trí sau:
+
+- Tên vị trí: {request.Title}
+- Cấp độ: {(string.IsNullOrWhiteSpace(request.Level) ? "Không xác định" : request.Level)}
+- Yêu cầu chính: {(string.IsNullOrWhiteSpace(request.KeyRequirements) ? "Không có" : request.KeyRequirements)}
+- Mức lương: {salaryText}
+
+Yêu cầu:
+1. Viết bằng tiếng Việt, chuyên nghiệp, hấp dẫn ứng viên IT
+2. description: 3-4 đoạn giới thiệu công việc, môi trường làm việc (150-200 từ)
+3. requirements: danh sách bullet points các yêu cầu kỹ thuật và kinh nghiệm (8-12 điểm)
+4. benefits: danh sách bullet points quyền lợi hấp dẫn (6-8 điểm)
+
+CHỈ trả về JSON thuần (không markdown, không code block):
+{{
+  ""description"": ""<nội dung mô tả>"",
+  ""requirements"": ""<danh sách yêu cầu, mỗi điểm trên 1 dòng bắt đầu bằng • >"",
+  ""benefits"": ""<danh sách quyền lợi, mỗi điểm trên 1 dòng bắt đầu bằng • >""
+}}";
+
+        try
+        {
+            var httpClient = _httpClientFactory.CreateClient("GeminiClient");
+            var payload = new
+            {
+                contents = new[]
+                {
+                    new { parts = new[] { new { text = prompt } } }
+                }
+            };
+
+            var jsonContent = new StringContent(
+                JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+
+            var apiUrl = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={apiKey}";
+            var response = await httpClient.PostAsync(apiUrl, jsonContent);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errBody = await response.Content.ReadAsStringAsync();
+                _logger.LogError("[AI JD] Gemini error {Status}: {Body}", response.StatusCode, errBody);
+                return StatusCode(502, new { message = "Gemini AI tạm thời không khả dụng. Vui lòng thử lại sau." });
+            }
+
+            var responseText = await response.Content.ReadAsStringAsync();
+
+            using var doc = JsonDocument.Parse(responseText);
+            var rawText = doc.RootElement
+                .GetProperty("candidates")[0]
+                .GetProperty("content")
+                .GetProperty("parts")[0]
+                .GetProperty("text")
+                .GetString() ?? "";
+
+            // Làm sạch markdown nếu Gemini vẫn trả về
+            rawText = rawText.Trim();
+            if (rawText.StartsWith("```json")) rawText = rawText[7..];
+            if (rawText.StartsWith("```")) rawText = rawText[3..];
+            if (rawText.EndsWith("```")) rawText = rawText[..^3];
+            rawText = rawText.Trim();
+
+            using var resultDoc = JsonDocument.Parse(rawText);
+            var result = new
+            {
+                description = resultDoc.RootElement.GetProperty("description").GetString() ?? "",
+                requirements = resultDoc.RootElement.GetProperty("requirements").GetString() ?? "",
+                benefits = resultDoc.RootElement.GetProperty("benefits").GetString() ?? ""
+            };
+
+            _logger.LogInformation("[AI JD] Generated successfully for: {Title}", request.Title);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[AI JD] Error generating JD for {Title}", request.Title);
+            return StatusCode(500, new { message = "Lỗi khi sinh nội dung JD. Vui lòng thử lại." });
+        }
+    }
+}
+
+public class AiGenerateJdRequest
+{
+    public string Title { get; set; } = string.Empty;
+    public string? Level { get; set; }
+    public string? KeyRequirements { get; set; }
+    public decimal? SalaryMin { get; set; }
+    public decimal? SalaryMax { get; set; }
+    public string? Currency { get; set; }
 }

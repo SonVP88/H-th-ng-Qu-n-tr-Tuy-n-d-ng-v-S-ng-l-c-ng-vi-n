@@ -113,6 +113,12 @@ export const routes: Routes = [
         data: { roles: ['ADMIN', 'HR', 'INTERVIEW'] }
       },
       {
+        path: 'question-bank',
+        loadComponent: () => import('./pages/hr/question-bank/question-bank').then(m => m.QuestionBankComponent),
+        canActivate: [roleGuard],
+        data: { roles: ['ADMIN', 'HR', 'INTERVIEWER'] }
+      },
+      {
         path: 'chatbot-admin',
         loadComponent: () => import('./pages/admin/chatbot-admin/chatbot-admin').then(m => m.ChatbotAdminComponent),
         canActivate: [roleGuard],

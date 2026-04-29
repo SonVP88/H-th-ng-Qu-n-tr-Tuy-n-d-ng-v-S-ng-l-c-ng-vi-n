@@ -229,14 +229,67 @@
           <p class="text-gray-600 dark:text-gray-300 leading-relaxed text-sm">{{ summary }}</p>
         </div>
 
-        <!-- AI Score -->
-        <div *ngIf="rd?.aiExplanation"
-          class="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 rounded-xl p-5">
-          <h3 class="text-base font-bold mb-2 flex items-center gap-2 text-indigo-700">
-            <span class="material-symbols-outlined text-[20px]">psychology</span>
-            Đánh giá AI ({{ rd?.matchScore }}%)
-          </h3>
-          <p class="text-sm text-indigo-700 leading-relaxed">{{ rd?.aiExplanation }}</p>
+        <!-- AI Score (Explainable AI) -->
+        <div *ngIf="isLoadingAiScore()" class="bg-indigo-50 border border-indigo-100 rounded-xl p-5 flex justify-center py-8">
+          <span class="material-symbols-outlined animate-spin text-indigo-500 text-3xl">progress_activity</span>
+        </div>
+        
+        <div *ngIf="!isLoadingAiScore() && aiScoreData()"
+          class="bg-white dark:bg-gray-800 border border-indigo-200 dark:border-indigo-900/50 shadow-sm rounded-xl overflow-hidden">
+          
+          <!-- Header AI -->
+          <div class="bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 p-5 border-b border-indigo-100 dark:border-indigo-800/50">
+            <div class="flex items-center justify-between">
+              <h3 class="text-lg font-bold flex items-center gap-2 text-indigo-800 dark:text-indigo-300">
+                <span class="material-symbols-outlined text-[24px]">psychology</span>
+                Đánh giá AI ({{ aiScoreData().matchingScore }}%)
+              </h3>
+              <span class="text-xs text-indigo-500 bg-white dark:bg-gray-800 px-2.5 py-1 rounded-full font-medium border border-indigo-100 dark:border-indigo-800">
+                {{ aiScoreData().model }}
+              </span>
+            </div>
+            <p class="text-sm text-indigo-700 dark:text-indigo-400 mt-2 italic leading-relaxed">
+              "{{ aiScoreData().skillsInfo?.explanation }}"
+            </p>
+          </div>
+
+          <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Radar Chart -->
+            <div class="flex flex-col items-center">
+              <p class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Phân tích chi tiết</p>
+              <app-ai-score-radar *ngIf="aiScoreData().breakdown" [scores]="aiScoreData().breakdown" class="w-full"></app-ai-score-radar>
+              <div *ngIf="!aiScoreData().breakdown" class="text-sm text-gray-400 italic py-10">Chưa có dữ liệu breakdown</div>
+            </div>
+
+            <!-- Skills -->
+            <div class="space-y-5">
+              <div>
+                <p class="text-sm font-semibold text-green-700 dark:text-green-400 flex items-center gap-1 mb-2">
+                  <span class="material-symbols-outlined text-[18px]">check_circle</span> Kỹ năng phù hợp
+                </p>
+                <div class="flex flex-wrap gap-1.5">
+                  <span *ngFor="let s of aiScoreData().skillsInfo?.matched"
+                    class="px-2.5 py-1 bg-green-50 text-green-700 border border-green-200 rounded-lg text-xs font-medium">
+                    {{ s }}
+                  </span>
+                  <span *ngIf="!aiScoreData().skillsInfo?.matched?.length" class="text-xs text-gray-400">Không có dữ liệu</span>
+                </div>
+              </div>
+
+              <div>
+                <p class="text-sm font-semibold text-red-600 dark:text-red-400 flex items-center gap-1 mb-2">
+                  <span class="material-symbols-outlined text-[18px]">error</span> Kỹ năng thiếu
+                </p>
+                <div class="flex flex-wrap gap-1.5">
+                  <span *ngFor="let s of aiScoreData().skillsInfo?.missing"
+                    class="px-2.5 py-1 bg-red-50 text-red-600 border border-red-200 rounded-lg text-xs font-medium">
+                    {{ s }}
+                  </span>
+                  <span *ngIf="!aiScoreData().skillsInfo?.missing?.length" class="text-xs text-gray-400">Không có dữ liệu</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- File đính kèm -->

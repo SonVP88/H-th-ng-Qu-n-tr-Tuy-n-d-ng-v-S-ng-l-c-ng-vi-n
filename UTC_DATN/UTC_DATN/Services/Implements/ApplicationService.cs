@@ -245,7 +245,7 @@ public class ApplicationService : IApplicationService
                         if (!string.IsNullOrWhiteSpace(savedFilePath) && System.IO.File.Exists(savedFilePath))
                         {
                             System.IO.File.Delete(savedFilePath);
-                            savedFilePath = null;
+                            savedFilePath = Path.Combine(uploadsFolderPath, candidateDocument.File.StoredFileName);
                         }
                     }
                     else
@@ -424,76 +424,128 @@ public class ApplicationService : IApplicationService
 
     private async Task ScoreApplicationInBackgroundAsync(Guid applicationId, string? savedFilePath, string jobTitle, string? jobDescription, string? jobRequirements)
     {
-        _logger.LogInformation("🔄 [BACKGROUND] Bắt đầu chấm điểm CV bằng AI");
+        _logger.LogInformation("🔄 [BACKGROUND] Bắt đầu chấm điểm CV bằng AI cho ApplicationId: {Id}", applicationId);
 
-        using (var scope = _serviceProvider.CreateScope())
+        using var scope = _serviceProvider.CreateScope();
+        var scopedDbContext = scope.ServiceProvider.GetRequiredService<UTC_DATNContext>();
+        var scopedLogger    = scope.ServiceProvider.GetRequiredService<ILogger<ApplicationService>>();
+        var scopedAiService = scope.ServiceProvider.GetRequiredService<IAiMatchingService>();
+
+        if (string.IsNullOrEmpty(savedFilePath))
         {
-            var scopedDbContext = scope.ServiceProvider.GetRequiredService<UTC_DATNContext>();
-            var scopedLogger = scope.ServiceProvider.GetRequiredService<ILogger<ApplicationService>>();
-            var scopedAiService = scope.ServiceProvider.GetRequiredService<IAiMatchingService>();
+            scopedLogger.LogWarning("⚠️ Đường dẫn file rỗng, bỏ qua AI scoring");
+            return;
+        }
 
-            if (string.IsNullOrEmpty(savedFilePath))
+        var cvExt = Path.GetExtension(savedFilePath)?.ToLowerInvariant() ?? "";
+        if (cvExt != ".pdf")
+        {
+            scopedLogger.LogWarning("⚠️ File không phải PDF ({Extension}), bỏ qua AI scoring", cvExt);
+            return;
+        }
+
+        var fullJobDescription = $"Job Title: {jobTitle}\nJob Description:\n{jobDescription}\nJob Requirements:\n{jobRequirements}";
+        if (string.IsNullOrWhiteSpace(jobDescription) && string.IsNullOrWhiteSpace(jobRequirements))
+        {
+            scopedLogger.LogWarning("🔄 [BACKGROUND] Job không có Description/Requirements, bỏ qua");
+            return;
+        }
+
+        try
+        {
+            var application = await scopedDbContext.Applications.FindAsync(applicationId);
+            if (application == null)
             {
-                scopedLogger.LogWarning(" Đường dẫn file rỗng, bỏ qua AI scoring");
+                scopedLogger.LogWarning("⚠️ Application {ApplicationId} không tồn tại", applicationId);
                 return;
             }
 
-            var cvExt = Path.GetExtension(savedFilePath)?.ToLowerInvariant() ?? "";
-            if (string.IsNullOrEmpty(cvExt) || cvExt != ".pdf")
+            // Gọi AI chấm điểm
+            var aiResult = await scopedAiService.ScoreApplicationAsync(savedFilePath, fullJobDescription);
+
+            // Serialize breakdown thành JSON
+            string? breakdownJson = null;
+            if (aiResult.Breakdown != null)
             {
-                scopedLogger.LogWarning("File không phải PDF ({Extension}), bỏ qua AI scoring", cvExt ?? "no extension");
-                return;
+                breakdownJson = System.Text.Json.JsonSerializer.Serialize(aiResult.Breakdown);
             }
 
-            var jobContext = new System.Text.StringBuilder();
-            jobContext.AppendLine($"Job Title: {jobTitle}");
-            jobContext.AppendLine("Job Description:");
-            jobContext.AppendLine(jobDescription ?? "");
-            jobContext.AppendLine("Job Requirements:");
-            jobContext.AppendLine(jobRequirements ?? "");
+            // Xóa điểm cũ nếu có
+            var existingScore = await scopedDbContext.ApplicationAiScores
+                .FirstOrDefaultAsync(s => s.ApplicationId == applicationId);
+            if (existingScore != null)
+                scopedDbContext.ApplicationAiScores.Remove(existingScore);
 
-            var fullJobDescription = jobContext.ToString();
-
-            if (string.IsNullOrWhiteSpace(fullJobDescription.Replace("Job Title: " + jobTitle, "").Trim()))
+            // Lưu điểm mới (kèm BreakdownJson)
+            var aiScore = new ApplicationAiScore
             {
-                scopedLogger.LogWarning("🔄 [BACKGROUND] Job không có Description/Requirements");
-                return;
-            }
-
-            try
-            {
-                var application = await scopedDbContext.Applications.FindAsync(applicationId);
-                if (application == null)
+                AiScoreId      = Guid.NewGuid(),
+                ApplicationId  = applicationId,
+                MatchingScore  = aiResult.Score,
+                MatchedSkillsJson = System.Text.Json.JsonSerializer.Serialize(new
                 {
-                    scopedLogger.LogWarning("Application {ApplicationId} không tồn tại", applicationId);
-                    return;
-                }
+                    matched = aiResult.MatchedSkills,
+                    missing = aiResult.MissingSkills,
+                    explanation = aiResult.Explanation
+                }),
+                BreakdownJson  = breakdownJson,
+                Model          = "gemini-2.5-flash",
+                CreatedAt      = DateTime.UtcNow
+            };
 
-                scopedLogger.LogInformation("✅ AI scoring thành công");
-            }
-            catch (Exception ex)
-            {
-                scopedLogger.LogError(ex, " Lỗi AI scoring");
-            }
+            scopedDbContext.ApplicationAiScores.Add(aiScore);
+            await scopedDbContext.SaveChangesAsync();
+
+            scopedLogger.LogInformation("✅ AI scoring hoàn thành. Score={Score} Breakdown={Breakdown}",
+                aiResult.Score, breakdownJson);
+        }
+        catch (Exception ex)
+        {
+            scopedLogger.LogError(ex, "❌ Lỗi AI scoring cho ApplicationId: {Id}", applicationId);
         }
     }
+
 
     public async Task<List<ApplicationDto>> GetApplicationsByJobIdAsync(Guid jobId)
     {
         var applications = await _context.Applications
             .Include(a => a.Candidate)
+            .Include(a => a.Job)
+            .Include(a => a.CurrentStage)
+            .Include(a => a.ApplicationAiScores)
             .Where(a => a.JobId == jobId && !a.Job.IsDeleted)
+            .OrderByDescending(a => a.AppliedAt)
             .Select(a => new ApplicationDto
             {
                 ApplicationId = a.ApplicationId,
                 JobId = a.JobId,
+                JobTitle = a.Job.Title,
                 CandidateId = a.CandidateId,
                 Status = a.Status,
                 AppliedAt = a.AppliedAt,
                 CvUrl = a.ResumeDocument.File.Url ?? "",
                 CandidateName = a.ContactName ?? a.Candidate.FullName,
                 Email = a.ContactEmail ?? a.Candidate.Email,
-                Phone = a.ContactPhone ?? a.Candidate.Phone
+                Phone = a.ContactPhone ?? a.Candidate.Phone,
+                MatchScore = a.ApplicationAiScores.OrderByDescending(x => x.CreatedAt).FirstOrDefault() != null 
+                    ? (int?)a.ApplicationAiScores.OrderByDescending(x => x.CreatedAt).FirstOrDefault().MatchingScore 
+                    : null,
+                AiExplanation = a.ApplicationAiScores.OrderByDescending(x => x.CreatedAt).FirstOrDefault() != null && a.ApplicationAiScores.OrderByDescending(x => x.CreatedAt).FirstOrDefault().MatchedSkillsJson != null 
+                    ? "AI đã phân tích kỹ năng ứng viên" 
+                    : null,
+                CurrentStageCode = a.CurrentStage != null ? a.CurrentStage.Code : null,
+                CurrentStageName = a.CurrentStage != null ? a.CurrentStage.Name : null,
+                SlaMaxDays = a.CurrentStage != null ? a.CurrentStage.SlaMaxDays : null,
+                SlaWarnBeforeDays = a.CurrentStage != null ? a.CurrentStage.SlaWarnBeforeDays : null,
+                SlaDueAt = (a.CurrentStage != null && a.CurrentStage.SlaMaxDays.HasValue) ? a.LastStageChangedAt.AddDays(a.CurrentStage.SlaMaxDays.Value) : null,
+                SlaOverdueDays = (a.CurrentStage != null && a.CurrentStage.SlaMaxDays.HasValue && DateTime.UtcNow > a.LastStageChangedAt.AddDays(a.CurrentStage.SlaMaxDays.Value)) 
+                    ? (int)(DateTime.UtcNow - a.LastStageChangedAt.AddDays(a.CurrentStage.SlaMaxDays.Value)).TotalDays : 0,
+                SlaStatus = (a.CurrentStage == null || !a.CurrentStage.SlaMaxDays.HasValue) ? "DISABLED" : 
+                    (DateTime.UtcNow > a.LastStageChangedAt.AddDays(a.CurrentStage.SlaMaxDays.Value) ? "OVERDUE" : 
+                    (a.CurrentStage.SlaWarnBeforeDays.HasValue && DateTime.UtcNow > a.LastStageChangedAt.AddDays(a.CurrentStage.SlaMaxDays.Value - a.CurrentStage.SlaWarnBeforeDays.Value) ? "WARNING" : "ON_TRACK")),
+                JobStatus = a.Job.Status,
+                JobNumberOfPositions = a.Job.NumberOfPositions,
+                JobTotalHired = a.Job.Applications.Count(app => app.Status == "HIRED")
             })
             .ToListAsync();
 
@@ -513,6 +565,15 @@ public class ApplicationService : IApplicationService
 
         application.Status = newStatus;
         application.LastStageChangedAt = DateTime.UtcNow;
+
+        // Xóa (đánh dấu đã đọc) các thông báo SLA cũ của hồ sơ này
+        var slaNotifications = await _context.Notifications
+            .Where(n => n.RelatedId == applicationId.ToString() && !n.IsRead && n.Type.StartsWith("SLA_"))
+            .ToListAsync();
+        foreach (var notification in slaNotifications)
+        {
+            notification.IsRead = true;
+        }
 
         await _context.SaveChangesAsync();
 
@@ -622,18 +683,41 @@ public class ApplicationService : IApplicationService
         var applications = await _context.Applications
             .Include(a => a.Candidate)
             .Include(a => a.Job)
+            .Include(a => a.CurrentStage)
+            .Include(a => a.ApplicationAiScores)
             .Where(a => !a.Job.IsDeleted)
+            .OrderByDescending(a => a.AppliedAt)
             .Select(a => new ApplicationDto
             {
                 ApplicationId = a.ApplicationId,
                 JobId = a.JobId,
+                JobTitle = a.Job.Title,
                 CandidateId = a.CandidateId,
                 Status = a.Status,
                 AppliedAt = a.AppliedAt,
                 CvUrl = a.ResumeDocument.File.Url ?? "",
                 CandidateName = a.ContactName ?? a.Candidate.FullName,
                 Email = a.ContactEmail ?? a.Candidate.Email,
-                Phone = a.ContactPhone ?? a.Candidate.Phone
+                Phone = a.ContactPhone ?? a.Candidate.Phone,
+                MatchScore = a.ApplicationAiScores.OrderByDescending(x => x.CreatedAt).FirstOrDefault() != null 
+                    ? (int?)a.ApplicationAiScores.OrderByDescending(x => x.CreatedAt).FirstOrDefault().MatchingScore 
+                    : null,
+                AiExplanation = a.ApplicationAiScores.OrderByDescending(x => x.CreatedAt).FirstOrDefault() != null && a.ApplicationAiScores.OrderByDescending(x => x.CreatedAt).FirstOrDefault().MatchedSkillsJson != null 
+                    ? "AI đã phân tích kỹ năng ứng viên" 
+                    : null,
+                CurrentStageCode = a.CurrentStage != null ? a.CurrentStage.Code : null,
+                CurrentStageName = a.CurrentStage != null ? a.CurrentStage.Name : null,
+                SlaMaxDays = a.CurrentStage != null ? a.CurrentStage.SlaMaxDays : null,
+                SlaWarnBeforeDays = a.CurrentStage != null ? a.CurrentStage.SlaWarnBeforeDays : null,
+                SlaDueAt = (a.CurrentStage != null && a.CurrentStage.SlaMaxDays.HasValue) ? a.LastStageChangedAt.AddDays(a.CurrentStage.SlaMaxDays.Value) : null,
+                SlaOverdueDays = (a.CurrentStage != null && a.CurrentStage.SlaMaxDays.HasValue && DateTime.UtcNow > a.LastStageChangedAt.AddDays(a.CurrentStage.SlaMaxDays.Value)) 
+                    ? (int)(DateTime.UtcNow - a.LastStageChangedAt.AddDays(a.CurrentStage.SlaMaxDays.Value)).TotalDays : 0,
+                SlaStatus = (a.CurrentStage == null || !a.CurrentStage.SlaMaxDays.HasValue) ? "DISABLED" : 
+                    (DateTime.UtcNow > a.LastStageChangedAt.AddDays(a.CurrentStage.SlaMaxDays.Value) ? "OVERDUE" : 
+                    (a.CurrentStage.SlaWarnBeforeDays.HasValue && DateTime.UtcNow > a.LastStageChangedAt.AddDays(a.CurrentStage.SlaMaxDays.Value - a.CurrentStage.SlaWarnBeforeDays.Value) ? "WARNING" : "ON_TRACK")),
+                JobStatus = a.Job.Status,
+                JobNumberOfPositions = a.Job.NumberOfPositions,
+                JobTotalHired = a.Job.Applications.Count(app => app.Status == "HIRED")
             })
             .ToListAsync();
 

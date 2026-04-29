@@ -219,4 +219,11 @@ export class ApplicationService {
     trackCvView(applicationId: string): Observable<ApiResponse<any>> {
         return this.http.post<ApiResponse<any>>(`${this.apiUrl}/applications/${applicationId}/track-view`, {});
     }
+
+    /**
+     * Lấy điểm AI và Explainable AI Breakdown
+     */
+    getAiScore(applicationId: string): Observable<ApiResponse<any>> {
+        return this.http.get<ApiResponse<any>>(`${this.apiUrl}/applications/${applicationId}/ai-score`);
+    }
 }

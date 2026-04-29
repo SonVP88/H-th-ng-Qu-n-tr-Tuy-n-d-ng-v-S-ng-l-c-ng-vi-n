@@ -6,6 +6,7 @@ import { OfferModalComponent } from '../offer-modal/offer-modal';
 import { ApplicationService, CandidateProfileDto } from '../../../services/application.service';
 import { ToastService } from '../../../services/toast.service';
 import { PopupService } from '../../../services/popup.service';
+import { AiScoreRadarComponent } from '../../hr/ai-score-radar/ai-score-radar.component';
 
 interface CandidateRouteState {
   applicationId: string;
@@ -39,7 +40,7 @@ const PIPELINE_STAGES = [
 @Component({
   selector: 'app-candidate-detail',
   standalone: true,
-  imports: [CommonModule, OfferModalComponent],
+  imports: [CommonModule, OfferModalComponent, AiScoreRadarComponent],
   templateUrl: './candidate-detail.html',
   styleUrl: './candidate-detail.scss',
 })
@@ -57,6 +58,8 @@ export class CandidateDetail implements OnInit {
   isSendingEmail = signal(false);
   routerDataSig = signal<CandidateRouteState | null>(null);
   showOfferModal = signal(false);
+  aiScoreData = signal<any>(null);
+  isLoadingAiScore = signal(false);
 
   pipelineStages = PIPELINE_STAGES;
 
@@ -75,6 +78,24 @@ export class CandidateDetail implements OnInit {
   ngOnInit(): void {
     const id = this.routerDataSig()?.candidateId;
     if (id) this.loadCandidateProfile(id);
+
+    const appId = this.routerDataSig()?.applicationId;
+    if (appId) this.loadAiScore(appId);
+  }
+
+  loadAiScore(applicationId: string): void {
+    this.isLoadingAiScore.set(true);
+    this.appService.getAiScore(applicationId).subscribe({
+      next: (res) => {
+        if (res.success) {
+          this.aiScoreData.set(res.data);
+        }
+        this.isLoadingAiScore.set(false);
+      },
+      error: () => {
+        this.isLoadingAiScore.set(false);
+      }
+    });
   }
 
   // ── Getters ──────────────────────────────────────────

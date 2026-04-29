@@ -1,19 +1,20 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, ChangeDetectorRef, NgZone } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, ValidatorFn, AbstractControl, ValidationErrors } from '@angular/forms';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 
 import { BehaviorSubject, forkJoin } from 'rxjs';
 
 import { MasterDataService, JobType, Skill, Province, Ward } from '../../../services/master-data.service';
-import { JobService, CreateJobRequest } from '../../../services/job.service';
+import { JobService, CreateJobRequest, AiGenerateJdRequest } from '../../../services/job.service';
 import { ToastService } from '../../../services/toast.service';
 import { PopupService } from '../../../services/popup.service';
 
 @Component({
   selector: 'app-post-job',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule],
   templateUrl: './post-job.html',
   styleUrl: './post-job.scss',
 })
@@ -45,7 +46,9 @@ export class PostJob implements OnInit {
   selectedSkillIds: string[] = [];
   selectedProvinceCode = 0;
   isSubmitting = false;
+  isGeneratingJd = false;
   skillsError = false;
+  keyRequirements = '';
 
   isEditMode = false;
   jobId: string | null = null;
@@ -375,6 +378,43 @@ export class PostJob implements OnInit {
         }
       });
     }
+  }
+
+  /**
+   * Gọi AI sinh nội dung JD tự động
+   */
+  onAiGenerateJd(): void {
+    const title = this.jobForm.get('title')?.value?.trim();
+    if (!title) {
+      this.toast.warning('Thiếu thông tin', 'Vui lòng nhập Tiêu đề vị trí trước khi dùng AI gợi ý.');
+      return;
+    }
+
+    const req: AiGenerateJdRequest = {
+      title,
+      level: this.jobForm.get('seniorityLevel')?.value || undefined,
+      keyRequirements: this.keyRequirements?.trim() || undefined,
+      salaryMin: this.jobForm.get('salaryMin')?.value || undefined,
+      salaryMax: this.jobForm.get('salaryMax')?.value || undefined,
+    };
+
+    this.isGeneratingJd = true;
+    this.jobService.generateJd(req).subscribe({
+      next: (result) => {
+        this.jobForm.patchValue({
+          description: result.description,
+          requirements: result.requirements,
+          benefits: result.benefits,
+        });
+        this.toast.success('AI gợi ý thành công!', 'Nội dung đã được điền tự động. Bạn có thể chỉnh sửa thêm.');
+        this.isGeneratingJd = false;
+      },
+      error: (err) => {
+        const msg = err?.error?.message || 'Không thể kết nối AI. Vui lòng thử lại.';
+        this.toast.error('AI thất bại', msg);
+        this.isGeneratingJd = false;
+      }
+    });
   }
 
   /**

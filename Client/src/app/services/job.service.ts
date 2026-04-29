@@ -24,6 +24,21 @@ export interface CreateJobResponse {
     message: string;
 }
 
+export interface AiGenerateJdRequest {
+    title: string;
+    level?: string;
+    keyRequirements?: string;
+    salaryMin?: number;
+    salaryMax?: number;
+    currency?: string;
+}
+
+export interface AiGenerateJdResult {
+    description: string;
+    requirements: string;
+    benefits: string;
+}
+
 export interface JobDto {
     jobId: string;
     title: string;
@@ -173,5 +188,12 @@ export class JobService {
 
     getRecommendedCandidates(jobId: string, top: number = 10): Observable<any[]> {
         return this.http.get<any[]>(`${this.apiUrl}/recommendation/candidates/${jobId}?top=${top}`);
+    }
+
+    /**
+     * Gọi AI để sinh nội dung Job Description (description, requirements, benefits)
+     */
+    generateJd(request: AiGenerateJdRequest): Observable<AiGenerateJdResult> {
+        return this.http.post<AiGenerateJdResult>(`${this.apiUrl}/jobs/ai-generate-jd`, request);
     }
 }

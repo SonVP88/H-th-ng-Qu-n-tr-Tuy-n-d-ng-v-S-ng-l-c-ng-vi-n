@@ -437,8 +437,6 @@ namespace UTC_DATN.Controllers
                 return null;
             }
 
-            var normalizedNoDiacritics = RemoveDiacritics(normalized);
-
             var candidates = await _context.ChatbotFaqs
                 .AsNoTracking()
                 .Where(x => x.IsActive)
@@ -450,11 +448,8 @@ namespace UTC_DATN.Controllers
             foreach (var faq in candidates)
             {
                 var question = faq.Question?.Trim().ToLower() ?? string.Empty;
-                var questionNoDiacritics = RemoveDiacritics(question);
-
                 if (!string.IsNullOrWhiteSpace(question)
-                    && (normalized.Contains(question) || question.Contains(normalized) ||
-                        normalizedNoDiacritics.Contains(questionNoDiacritics) || questionNoDiacritics.Contains(normalizedNoDiacritics)))
+                    && (normalized.Contains(question) || question.Contains(normalized)))
                 {
                     return faq.Answer;
                 }
@@ -469,40 +464,13 @@ namespace UTC_DATN.Controllers
                     .Select(x => x.ToLower())
                     .Where(x => x.Length >= 2);
 
-                if (keywords.Any(k => 
-                {
-                    var kNoDiacritics = RemoveDiacritics(k);
-                    return normalized.Contains(k) || normalizedNoDiacritics.Contains(kNoDiacritics);
-                }))
+                if (keywords.Any(k => normalized.Contains(k)))
                 {
                     return faq.Answer;
                 }
             }
 
             return null;
-        }
-
-        private static string RemoveDiacritics(string text)
-        {
-            if (string.IsNullOrWhiteSpace(text)) return text;
-            
-            var normalizedString = text.Normalize(NormalizationForm.FormD);
-            var stringBuilder = new StringBuilder(capacity: normalizedString.Length);
-
-            for (int i = 0; i < normalizedString.Length; i++)
-            {
-                char c = normalizedString[i];
-                var unicodeCategory = System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c);
-                if (unicodeCategory != System.Globalization.UnicodeCategory.NonSpacingMark)
-                {
-                    stringBuilder.Append(c);
-                }
-            }
-
-            return stringBuilder
-                .ToString()
-                .Normalize(NormalizationForm.FormC)
-                .Replace('đ', 'd').Replace('Đ', 'D'); // Handle special Vietnamese character
         }
 
         private static string NormalizeKeywords(string? rawKeywords)
